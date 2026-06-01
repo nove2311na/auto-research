@@ -1,0 +1,48 @@
+name: autoresearch nightly
+
+# V1: single-workstation loop. The workflow opens an issue reminder instead of
+# launching agents in CI (hcom agents need a persistent shell session).
+#
+# V2: when a self-hosted runner with a GPU is added, replace the issue-opener
+# with the actual launch sequence (checkout, uv sync, hcom launch, kickoff).
+
+on:
+  schedule:
+    # Weekdays at 03:00 UTC (~10am VN time)
+    - cron: "0 3 * * 1-5"
+  workflow_dispatch:  # manual trigger
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open daily reminder issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0, 10);
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🤖 autoresearch reminder — ${today}`,
+              body: [
+                '**Time to wake the swarm.** On your workstation:',
+                '',
+                '```bash',
+                'cd ~/autoresearch-agentic-folder',
+                './scripts/launch.sh',
+                '# in a new terminal:',
+                './scripts/kickoff.sh',
+                '# monitor:',
+                './scripts/attach_tui.sh',
+                '```',
+                '',
+                'Stopping conditions (in `prd.json`):',
+                '- 20 experiments logged',
+                '- 4h elapsed',
+                '- 5 consecutive `discard` results',
+                '',
+                'When done: post a summary comment here with `results.tsv` tail and `learnings.md` highlights.',
+              ].join('\n'),
+              labels: ['autoresearch', 'reminder'],
+            });

@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "01_ingest",
+  "description": "Ingested content normalized to plain text. Metadata about the source.",
+  "type": "object",
+  "required": ["text", "metadata"],
+  "properties": {
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Normalized plain-text content. The actual research material."
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["source_type", "source_ref", "size_bytes"],
+      "properties": {
+        "source_type": {
+          "type": "string",
+          "enum": ["text", "file", "url", "pdf", "docx", "batch_dir"]
+        },
+        "source_ref": {
+          "type": "string",
+          "description": "Original path, URL, or batch id."
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fetched_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "encoding": {
+          "type": "string",
+          "description": "e.g. utf-8"
+        },
+        "title": {
+          "type": "string",
+          "description": "If extractable from the source (e.g. PDF title, URL <title>)."
+        },
+        "research_ref": {
+          "type": "string",
+          "description": "Optional path to the 00_research dossier artifact (e.g. '00_research/v1.json'). Absent if the research stage was skipped."
+        }
+      }
+    }
+  }
+}

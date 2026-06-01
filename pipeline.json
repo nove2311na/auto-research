@@ -1,0 +1,67 @@
+{
+  "version": "1.0",
+  "name": "research-pipeline",
+  "description": "Content → 6-stage research pipeline → structured folder of versioned artifacts. Each stage produces an artifact + meta; the critic validates and triggers retry if needed.",
+  "input_types": ["text", "file", "url", "pdf", "docx", "batch_dir"],
+  "stages": [
+    {
+      "id": "00_research",
+      "name": "Research",
+      "agent": "research",
+      "schema": "schemas/00_research.json",
+      "output_format": "json",
+      "max_retries": 3,
+      "max_options": 1
+    },
+    {
+      "id": "01_ingest",
+      "name": "Ingest",
+      "agent": "ingest",
+      "schema": "schemas/01_ingest.json",
+      "output_format": "txt",
+      "max_retries": 3,
+      "max_options": 1
+    },
+    {
+      "id": "02_extract",
+      "name": "Extract",
+      "agent": "extract",
+      "schema": "schemas/02_extract.json",
+      "output_format": "json",
+      "max_retries": 3,
+      "max_options": 3
+    },
+    {
+      "id": "03_analyze",
+      "name": "Analyze",
+      "agent": "analyze",
+      "schema": "schemas/03_analyze.json",
+      "output_format": "json",
+      "max_retries": 3,
+      "max_options": 1
+    },
+    {
+      "id": "04_synthesize",
+      "name": "Synthesize",
+      "agent": "synth",
+      "schema": "schemas/04_synthesize.json",
+      "output_format": "json",
+      "max_retries": 3,
+      "max_options": 1
+    },
+    {
+      "id": "05_format",
+      "name": "Format",
+      "agent": "format",
+      "schema": "schemas/05_format.json",
+      "output_format": "json+md",
+      "max_retries": 3,
+      "max_options": 1
+    }
+  ],
+  "critic": {
+    "agent": "critic",
+    "checks": ["schema", "completeness", "llm_judge"],
+    "llm_judge_threshold": 0.7
+  }
+}

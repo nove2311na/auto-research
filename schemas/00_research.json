@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "00_research",
+  "description": "Research dossier produced by the researcher agent using WebSearch + WebFetch. Iterative, depth-aware web research on the input subject.",
+  "type": "object",
+  "required": ["topic", "depth", "queries", "sources", "synthesis"],
+  "properties": {
+    "topic": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Subject researched. Extracted from the input if the input is a file/URL/PDF/DOCX; used directly if the input is a topic string."
+    },
+    "depth": {
+      "type": "string",
+      "enum": ["shallow", "medium", "deep"],
+      "description": "Research depth flag from --depth CLI arg. shallow=1 round/3 queries/5 sources, medium=2/5/10, deep=3/8/15."
+    },
+    "queries": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Search queries issued across all rounds. Round 1 is broad scoping; later rounds target gaps from prior synthesis.",
+      "items": {
+        "type": "object",
+        "required": ["query", "round"],
+        "properties": {
+          "query": {"type": "string", "minLength": 1},
+          "round": {"type": "integer", "minimum": 1},
+          "rationale": {
+            "type": "string",
+            "description": "Why this query — what angle or gap it targets."
+          },
+          "results_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of URLs returned by WebSearch."
+          }
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "description": "URLs that were WebFetch'd and excerpted. Deduped by URL.",
+      "items": {
+        "type": "object",
+        "required": ["url", "title", "excerpt"],
+        "properties": {
+          "url": {"type": "string", "format": "uri"},
+          "title": {"type": "string"},
+          "fetched_at": {"type": "string", "format": "date-time"},
+          "excerpt": {
+            "type": "string",
+            "minLength": 1,
+            "description": "200-500 char excerpt relevant to the research topic."
+          },
+          "relevance": {"type": "string", "enum": ["high", "medium", "low"]}
+        }
+      }
+    },
+    "synthesis": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Integrated research summary, ~500-2000 words. Weaves findings from all sources. Cites sources inline as [1], [2], etc., where the number maps to the sources array index+1."
+    },
+    "key_findings": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Bullet-style distilled findings — the most important points a reader should remember."
+    },
+    "gaps": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "What we still don't know — limitations of this research, topics that returned thin results, areas needing deeper investigation."
+    }
+  }
+}

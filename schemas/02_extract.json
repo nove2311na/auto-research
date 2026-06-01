@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "02_extract",
+  "description": "Structured extraction of entities, facts, and quotes from ingested text.",
+  "type": "object",
+  "required": ["entities", "facts", "quotes"],
+  "properties": {
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type", "mentions"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "type": {"type": "string", "enum": ["person", "org", "place", "concept", "product", "event", "other"]},
+          "mentions": {"type": "integer", "minimum": 0},
+          "aliases": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["claim", "evidence_quote"],
+        "properties": {
+          "claim": {"type": "string", "minLength": 1},
+          "evidence_quote": {"type": "string", "minLength": 1},
+          "confidence": {"type": "string", "enum": ["high", "medium", "low"]}
+        }
+      }
+    },
+    "quotes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["text", "attribution"],
+        "properties": {
+          "text": {"type": "string", "minLength": 1},
+          "attribution": {"type": "string"}
+        }
+      }
+    }
+  }
+}

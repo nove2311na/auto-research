@@ -1,23 +1,42 @@
-# Python-generated files
+# Python
 __pycache__/
 *.py[oc]
 build/
 dist/
 wheels/
-*.egg-info
+*.egg-info/
 
-# Virtual environments
-.venv
+# Virtual env
+.venv/
 worktrees/
-results/
-queue/
 
-# Agent prompt files (generated per-session by launchers)
-CLAUDE.md
-AGENTS.md
-
-# Experimental code/artifacts
+# Generated/dev
 dev/
 
-# Results file
-results.tsv
+# hcom runtime
+.hcom/
+
+# Pipeline state (regenerated on each run)
+prd.json
+progress.md
+
+# Inbox / processed (input material; can be large or sensitive)
+inputs/inbox/
+inputs/processed/
+
+# Pipeline outputs (regenerated per input; can be large)
+outputs/
+
+# Local env
+.env
+
+# macOS noise
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo

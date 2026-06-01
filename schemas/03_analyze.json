@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "03_analyze",
+  "description": "Patterns, themes, gaps, and contradictions found in the extracted material.",
+  "type": "object",
+  "required": ["themes", "gaps", "contradictions"],
+  "properties": {
+    "themes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "supporting_facts"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "description": {"type": "string"},
+          "supporting_facts": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "References to fact claims from 02_extract."
+          }
+        }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["description", "what_would_fill_it"],
+        "properties": {
+          "description": {"type": "string", "minLength": 1},
+          "what_would_fill_it": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "contradictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["claim_a", "claim_b", "explanation"],
+        "properties": {
+          "claim_a": {"type": "string", "minLength": 1},
+          "claim_b": {"type": "string", "minLength": 1},
+          "explanation": {"type": "string"}
+        }
+      }
+    }
+  }
+}

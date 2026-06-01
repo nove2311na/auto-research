@@ -1,92 +1,170 @@
-# autoresearch
+# research-pipeline
 
-![teaser](progress.png)
+A 7-agent AI pipeline that takes any content (text, URL, PDF, DOCX, or a folder of them) and turns it into a structured research report. Like n8n's AI-agent node + output parser, but materialized as a folder of versioned artifacts with a full audit trail.
 
-*One day, frontier AI research used to be done by meat computers in between eating, sleeping, having other fun, and synchronizing once in a while using sound wave interconnect in the ritual of "group meeting". That era is long gone. Research is now entirely the domain of autonomous swarms of AI agents running across compute cluster megastructures in the skies. The agents claim that we are now in the 10,205th generation of the code base, in any case no one could tell if that's right or wrong as the "code" is now a self-modifying binary that has grown beyond human comprehension. This repo is the story of how it all began. -@karpathy, March 2026*.
+The swarm is coordinated by [`hcom`](https://github.com/aannoo/hcom) — one Claude per agent, all working off the same shared filesystem.
 
-The idea: give an AI agent a small but real LLM training setup and let it experiment autonomously overnight. It modifies the code, trains for 5 minutes, checks if the result improved, keeps or discards, and repeats. You wake up in the morning to a log of experiments and (hopefully) a better model. The training code here is a simplified single-GPU implementation of [nanochat](https://github.com/karpathy/nanochat). The core idea is that you're not touching any of the Python files like you normally would as a researcher. Instead, you are programming the `program.md` Markdown files that provide context to the AI agents and set up your autonomous research org. The default `program.md` in this repo is intentionally kept as a bare bones baseline, though it's obvious how one would iterate on it over time to find the "research org code" that achieves the fastest research progress, how you'd add more agents to the mix, etc. A bit more context on this project is here in this [tweet](https://x.com/karpathy/status/2029701092347630069) and [this tweet](https://x.com/karpathy/status/2031135152349524125).
-
-## How it works
-
-The repo is deliberately kept small and only really has three files that matter:
-
-- **`prepare.py`** — fixed constants, one-time data prep (downloads training data, trains a BPE tokenizer), and runtime utilities (dataloader, evaluation). Not modified.
-- **`train.py`** — the single file the agent edits. Contains the full GPT model, optimizer (Muon + AdamW), and training loop. Everything is fair game: architecture, hyperparameters, optimizer, batch size, etc. **This file is edited and iterated on by the agent**.
-- **`program.md`** — baseline instructions for one agent. Point your agent here and let it go. **This file is edited and iterated on by the human**.
-
-By design, training runs for a **fixed 5-minute time budget** (wall clock, excluding startup/compilation), regardless of the details of your compute. The metric is **val_bpb** (validation bits per byte) — lower is better, and vocab-size-independent so architectural changes are fairly compared.
-
-If you are new to neural networks, this ["Dummy's Guide"](https://x.com/hooeem/status/2030720614752039185) looks pretty good for a lot more context.
-
-## Quick start
-
-**Requirements:** A single NVIDIA GPU (tested on H100), Python 3.10+, [uv](https://docs.astral.sh/uv/).
+## 60-second onboarding
 
 ```bash
-
-# 1. Install uv project manager (if you don't already have it)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# 2. Install dependencies
+cd ~/autoresearch-agentic-folder
 uv sync
+HCOM_DIR="$PWD/.hcom" hcom hooks add claude    # scopes hcom hooks to this folder
+HCOM_DIR="$PWD/.hcom" hcom 7 claude --tag research-pipeline
 
-# 3. Download data and train tokenizer (one-time, ~2 min)
-uv run prepare.py
+# In another terminal — drop an input and watch
+echo "OpenAI was founded in December 2015 by Sam Altman, Greg Brockman, Ilya Sutskever, Wojciech Zaremba, John Schulman, and Elon Musk. The company was initially a non-profit..." > inputs/inbox/openai.txt
+HCOM_DIR="$PWD/.hcom" ./scripts/run_pipeline.sh inputs/inbox/openai.txt
 
-# 4. Manually run a single training experiment (~5 min)
-uv run train.py
+# Tail the work
+HCOM_DIR="$PWD/.hcom" hcom                       # TUI dashboard
+ls outputs/                                       # one folder per input
+cat outputs/<id>/05_format/v1.md                  # final report
+cat outputs/<id>/manifest.json                    # audit trail
 ```
 
-If the above commands all work ok, your setup is working and you can go into autonomous research mode.
-
-## Running the agent
-
-Simply spin up your Claude/Codex or whatever you want in this repo (and disable all permissions), then you can prompt something like:
+## The pipeline (5 stages)
 
 ```
-Hi have a look at program.md and let's kick off a new experiment! let's do the setup first.
+inputs/inbox/*  →  01_ingest  →  02_extract  →  03_analyze  →  04_synthesize  →  05_format  →  outputs/<id>/
+                       ↓             ↓              ↓              ↓                ↓
+                       └────── critic validates each stage (writes meta, retries on fail) ──────┘
 ```
 
-The `program.md` file is essentially a super lightweight "skill".
+| Stage | Agent | Skill | Output |
+|---|---|---|---|
+| `01_ingest` | ingestor | URL/PDF/DOCX/text → plain text | `v1.txt` (+ optional `v1.json` with metadata) |
+| `02_extract` | extractor | entities, facts, quotes (up to 3 different approaches) | `options/{A,B,C}/v1.json` |
+| `03_analyze` | analyzer | themes, gaps, contradictions | `v1.json` |
+| `04_synthesize` | synthesizer | TL;DR, insights, narrative | `v1.json` |
+| `05_format` | formatter | research-report template | `v1.json` (machine) + `v1.md` (human) |
 
-## Project structure
+After each stage, the **critic** runs `tools/validator.validate_artifact` — schema + completeness + (optional) LLM-as-judge. On fail, the orchestrator retries the stage agent with feedback. On max-retries-exhausted, the pipeline halts for that input.
+
+## The 7 agents
+
+| # | Tag | Folder | hcom target |
+|---|---|---|---|
+| 1 | `orch` | `agents/orchestrator/` | `@research-pipeline-claude-1` |
+| 2 | `ingest` | `agents/ingestor/` | `@research-pipeline-claude-2` |
+| 3 | `extract` | `agents/extractor/` | `@research-pipeline-claude-3` |
+| 4 | `analyze` | `agents/analyzer/` | `@research-pipeline-claude-4` |
+| 5 | `synth` | `agents/synthesizer/` | `@research-pipeline-claude-5` |
+| 6 | `critic` | `agents/critic/` | `@research-pipeline-claude-6` |
+| 7 | `format` | `agents/formatter/` | `@research-pipeline-claude-7` |
+
+## File map
 
 ```
-prepare.py      — constants, data prep + runtime utilities (do not modify)
-train.py        — model, optimizer, training loop (agent modifies this)
-program.md      — agent instructions
-pyproject.toml  — dependencies
+~/autoresearch-agentic-folder/
+├── pipeline.json                   # single source of truth: stages, schemas, retries
+├── AGENTS.md → CLAUDE.md           # team memory (read at session start)
+├── prd.json                        # pipeline state (gitignored)
+├── progress.md                     # append-only audit log
+├── learnings.md                    # team knowledge base
+├── schemas/                        # JSON schemas (the "output parser" library)
+├── inputs/{inbox,processed}/       # content to research
+├── outputs/<id>/                   # one folder per input
+│   ├── 01_ingest/v1.txt + v1.meta.json
+│   ├── 02_extract/options/{A,B,C}/v1.json + v1.meta.json
+│   ├── 02_extract/v1.json         # critic's winner
+│   ├── 03_analyze/v1.json + v1.meta.json
+│   ├── 04_synthesize/v1.json + v1.meta.json
+│   ├── 05_format/v1.json + v1.md + v1.meta.json
+│   └── manifest.json               # audit trail for this input
+├── tools/
+│   ├── artifact_io.py              # read/write versioned artifacts (atomic)
+│   ├── validator.py                # schema + completeness + LLM-judge
+│   ├── fetch_input.py              # URL/PDF/DOCX → text
+│   ├── manifest.py                 # build/read manifest.json
+│   └── hcom_io.py                  # hcom wrappers
+├── agents/<role>/AGENT.md          # 7 agent prompts
+├── scripts/                        # launch + run helpers
+└── .claude/settings.json           # hcom hooks
 ```
 
-## Design choices
+## The 5 hard invariants
 
-- **Single file to modify.** The agent only touches `train.py`. This keeps the scope manageable and diffs reviewable.
-- **Fixed time budget.** Training always runs for exactly 5 minutes, regardless of your specific platform. This means you can expect approx 12 experiments/hour and approx 100 experiments while you sleep. There are two upsides of this design decision. First, this makes experiments directly comparable regardless of what the agent changes (model size, batch size, architecture, etc). Second, this means that autoresearch will find the most optimal model for your platform in that time budget. The downside is that your runs (and results) become not comparable to other people running on other compute platforms.
-- **Self-contained.** No external dependencies beyond PyTorch and a few small packages. No distributed training, no complex configs. One GPU, one file, one metric.
+1. **`pipeline.json` is the source of truth.** To change the pipeline, edit it — not the agent prompts.
+2. **Every artifact has a sibling `.meta.json`.** Producer + critic both write to it.
+3. **Critic is the only validator.** Producers do not self-validate.
+4. **Versioned, not overwritten.** v1, v2, v3 — never silent overwrite.
+5. **`manifest.json` is the audit trail.** Required for a pipeline to be "done".
 
-## Platform support
+## How the artifact versioning works
 
-This code currently requires that you have a single NVIDIA GPU. In principle it is quite possible to support CPU, MPS and other platforms but this would also bloat the code. I'm not 100% sure that I want to take this on personally right now. People can reference (or have their agents reference) the full/parent nanochat repository that has wider platform support and shows the various solutions (e.g. a Flash Attention 3 kernels fallback implementation, generic device support, autodetection, etc.), feel free to create forks or discussions for other platforms and I'm happy to link to them here in the README in some new notable forks section or etc.
+```
+outputs/<id>/02_extract/        # multi-option stage
+  options/
+    A/v1.json
+    A/v1.meta.json
+    B/v1.json
+    B/v1.meta.json
+    C/v1.json
+    C/v1.meta.json
+  v1.json                        # critic's winner (copy of options/<X>/v1.json)
+  v1.meta.json                   # has picked_option, picked_score
+```
 
-Seeing as there seems to be a lot of interest in tinkering with autoresearch on much smaller compute platforms than an H100, a few extra words. If you're going to try running autoresearch on smaller computers (Macbooks etc.), I'd recommend one of the forks below. On top of this, here are some recommendations for how to tune the defaults for much smaller models for aspiring forks:
+```
+outputs/<id>/03_analyze/        # linear stage
+  v1.json
+  v1.meta.json                   # validation: pass, score: 0.82, feedback: ...
+  v2.json                        # if retry
+  v2.meta.json                   # validation: pass, score: 0.88, ...
+```
 
-1. To get half-decent results I'd use a dataset with a lot less entropy, e.g. this [TinyStories dataset](https://huggingface.co/datasets/karpathy/tinystories-gpt4-clean). These are GPT-4 generated short stories. Because the data is a lot narrower in scope, you will see reasonable results with a lot smaller models (if you try to sample from them after training).
-2. You might experiment with decreasing `vocab_size`, e.g. from 8192 down to 4096, 2048, 1024, or even - simply byte-level tokenizer with 256 possibly bytes after utf-8 encoding.
-3. In `prepare.py`, you'll want to lower `MAX_SEQ_LEN` a lot, depending on the computer even down to 256 etc. As you lower `MAX_SEQ_LEN`, you may want to experiment with increasing `DEVICE_BATCH_SIZE` in `train.py` slightly to compensate. The number of tokens per fwd/bwd pass is the product of these two.
-4. Also in `prepare.py`, you'll want to decrease `EVAL_TOKENS` so that your validation loss is evaluated on a lot less data.
-5. In `train.py`, the primary single knob that controls model complexity is the `DEPTH` (default 8, here). A lot of variables are just functions of this, so e.g. lower it down to e.g. 4.
-6. You'll want to most likely use `WINDOW_PATTERN` of just "L", because "SSSL" uses alternating banded attention pattern that may be very inefficient for you. Try it.
-7. You'll want to lower `TOTAL_BATCH_SIZE` a lot, but keep it powers of 2, e.g. down to `2**14` (~16K) or so even, hard to tell.
+Every `v1.meta.json` looks like:
+```json
+{
+  "version": 1,
+  "stage": "02_extract",
+  "input_id": "abc12345",
+  "producer": "extractor",
+  "produced_at": "2026-06-01T12:34:56Z",
+  "parent_ref": "01_ingest/v1.txt",
+  "schema_version": "1.0",
+  "validation": {
+    "status": "pass",
+    "validator": "critic",
+    "validated_at": "2026-06-01T12:35:10Z",
+    "score": 0.85,
+    "feedback": "all checks passed",
+    "checks": {"schema": "pass", "completeness": "pass", "llm_judge": "pass"}
+  }
+}
+```
 
-I think these would be the reasonable hyperparameters to play with. Ask your favorite coding agent for help and copy paste them this guide, as well as the full source code.
+## Adding a new pipeline stage
 
-## Notable forks
+1. Add the stage to `pipeline.json` (id, agent, schema, max_retries, max_options).
+2. Create `schemas/<NN>_<name>.json`.
+3. Create `agents/<role>/AGENT.md` describing the skill.
+4. Update `AGENTS.md` file-ownership table to list the new paths.
+5. Run `./scripts/status.sh` to verify.
 
-- [miolini/autoresearch-macos](https://github.com/miolini/autoresearch-macos) (MacOS)
-- [trevin-creator/autoresearch-mlx](https://github.com/trevin-creator/autoresearch-mlx) (MacOS)
-- [jsegov/autoresearch-win-rtx](https://github.com/jsegov/autoresearch-win-rtx) (Windows)
-- [andyluo7/autoresearch](https://github.com/andyluo7/autoresearch) (AMD)
+The orchestrator reads `pipeline.json` at runtime; no other code change is needed.
+
+## Retargeting for a different task
+
+To use this for something other than content research (e.g., log analysis, code review, customer-feedback triage), edit:
+
+- `pipeline.json` — change `stages[].agent` and `schemas/*` to point at your new task
+- Each `agents/<role>/AGENT.md` — rewrite the skill
+- `schemas/*.json` — replace with your task's output shape
+
+The folder structure, hcom coordination, critic loop, and artifact versioning stay the same.
+
+## Out of scope (V1)
+
+- Multi-language research (search arxiv/web in other languages)
+- Cross-input correlation (compare insights across many inputs)
+- Persistent memory across runs (knowledge base that grows over time)
+- UI layer (web viewer for `outputs/`)
+- Custom schemas per-input (one global schema set; per-input override is V2)
+- Fine-tuned critic
+- Auto-archival of old `outputs/` to S3/cold storage
 
 ## License
 
-MIT
+Same as upstream — see `LICENSE` if present, otherwise default to your project's standard.

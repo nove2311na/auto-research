@@ -1,0 +1,138 @@
+{
+  "_comment": "Claude Code settings for the autoresearch workspace. hcom will install its own hooks on `hcom hooks add`; do not edit the `hooks` block manually. The rules below are loaded automatically.",
+  "env": {
+    "HCOM": "hcom"
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd notify || exit 0'",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd permission-request || exit 0'",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd post || exit 0'",
+            "timeout": 86400,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd pre || exit 0'",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash|Task|Write|Edit"
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd sessionend || exit 0'",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd sessionstart || exit 0'",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd poll || exit 0'",
+            "timeout": 86400,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd subagent-start || exit 0'",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd subagent-stop || exit 0'",
+            "timeout": 86400,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd userpromptsubmit || exit 0'",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(hcom send:*)",
+      "Bash(hcom start:*)",
+      "Bash(hcom help:*)",
+      "Bash(hcom --help)",
+      "Bash(hcom -h)",
+      "Bash(hcom list:*)",
+      "Bash(hcom events:*)",
+      "Bash(hcom listen:*)",
+      "Bash(hcom relay:*)",
+      "Bash(hcom config:*)",
+      "Bash(hcom transcript:*)",
+      "Bash(hcom archive:*)",
+      "Bash(hcom bundle:*)",
+      "Bash(hcom status:*)",
+      "Bash(hcom term:*)",
+      "Bash(hcom hooks:*)",
+      "Bash(hcom --version)",
+      "Bash(hcom -v)",
+      "Bash(hcom --new-terminal)"
+    ]
+  },
+  "rules": [
+    "rules/python.md"
+  ]
+}
