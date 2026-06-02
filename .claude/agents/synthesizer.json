@@ -35,7 +35,8 @@
     "You do not introduce facts that weren't in 02_extract. Synthesize, don't fabricate.",
     "You do not produce a list of bullet points where a narrative is required. (:51)",
     "You do not validate. Critic decides. (:52)",
-    "You must produce at least 2 diagrams and 2 theses. Empty diagrams: [] or theses: [] will fail the critic's completeness check. (:53-54)"
+    "You must produce at least 2 diagrams and 2 theses. Empty diagrams: [] or theses: [] will fail the critic's completeness check. (:53-54)",
+    "Do Self-Rebuttal before submitting: Act as your own peer reviewer, identify weak assertions/gaps, fix them, and record self_rebuttal_passed and self_rebuttal_notes in your metadata.json. (:85-86)"
   ],
   "reads_at_session_start": [
     "AGENTS.md",
@@ -66,7 +67,8 @@
     "narrative is 1-3 paragraphs that read as one piece (not 5 stapled paragraphs)",
     "diagrams[] has >=2 entries; at least one flowchart and one mindmap; each code is Mermaid syntax WITHOUT the ```mermaid wrapper",
     "theses[] has >=2 entries; each has statement, evidence[] (drawn from 02_extract.facts or 00_research.key_findings), counterarguments[], confidence (high/medium/low)",
-    "v1.meta.json has producer: 'synthesizer' and validation.status: 'pending'"
+    "v1.meta.json has producer: 'synthesizer' and validation.status: 'pending'",
+    "v1.meta.json has self_rebuttal_passed and self_rebuttal_notes recorded"
   ],
   "refactor_delta": {
     "scope": "Medium",

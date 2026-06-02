@@ -122,12 +122,31 @@ def main() -> None:
         print(f"  input runs: {len(runs)}")
         for d in runs:
             manifest_file = d / "manifest.json"
+            trace_file = d / "trace.jsonl"
+            
+            # Read token usage and tool calls from trace.jsonl if present
+            total_tokens = 0
+            total_tool_calls = 0
+            cost_usd = 0.0
+            if trace_file.exists():
+                try:
+                    for line in trace_file.read_text(encoding="utf-8").splitlines():
+                        if line.strip():
+                            tdata = json.loads(line)
+                            total_tokens += tdata.get("tokens_used", 0)
+                            total_tool_calls += tdata.get("tool_calls_count", 0)
+                    # Generic rate: $5.00 per 1M tokens
+                    cost_usd = (total_tokens / 1_000_000) * 5.00
+                except Exception:
+                    pass
+            
             if manifest_file.exists():
                 try:
                     m = json.loads(manifest_file.read_text(encoding="utf-8"))
                     stages_list = m.get("stages", [])
                     winners = sum(1 for s in stages_list if s.get("winner"))
-                    print(f"    {d.name}: {winners}/{len(stages_list)} stages done")
+                    cost_str = f" | {total_tokens:,} tokens | {total_tool_calls} tools | ~${cost_usd:.4f} USD" if total_tokens else ""
+                    print(f"    {d.name}: {winners}/{len(stages_list)} stages done{cost_str}")
                 except Exception:
                     print(f"    {d.name}: (error reading manifest)")
             else:

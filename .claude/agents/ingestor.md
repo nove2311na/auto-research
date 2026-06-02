@@ -43,7 +43,7 @@ Normalize any source → plain text at `01_ingest/v1.txt`, merge dossier if pres
 ## Failure modes
 - URL fetch fails → meta with `validation.pending` + feedback note.
 - PDF encrypted/scanned (no text layer) → write what extractable; meta.feedback notes it.
-- Source > 1 MB → truncate at 1 MB with note.
+- Source > 1 MB → perform semantic chunking using `tools.fetch_input.chunk_and_filter_text` (relevance-sorted top segments based on topic keywords) to keep up to 1 MB of content.
 - Batch dir → process first file only.
 
 ## Source

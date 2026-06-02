@@ -1,21 +1,39 @@
-# research-pipeline
+# 🤖 Auto-Research AI-Swarm Pipeline
 
-An 8-agent AI pipeline that takes any content (text, URL, PDF, DOCX, or a folder of them) and turns it into a structured research report. Like n8n's AI-agent node + output parser, but materialized as a folder of versioned artifacts with a full audit trail.
+An advanced, production-grade 8-agent AI pipeline designed to take any input content (raw text, URLs, PDFs, Word documents, or directories of them) and transform it into highly structured, peer-reviewed, and formatted research reports. 
 
-The swarm is coordinated by [`hcom`](https://github.com/aannoo/hcom) — one Claude per agent, all working off the same shared filesystem.
+Coordinated by [`hcom`](https://github.com/aannoo/hcom), the swarm leverages a shared filesystem to maintain state, track progress, enforce safety gates, and preserve a strict audit trail of versioned artifacts.
 
-## Quick start on this Windows repo
+---
 
-```cmd
-cd /d G:\My Drive\10_Learning\_Research\auto-research
+## ⚡ Quick Start (Windows PowerShell)
+
+```powershell
+# 1. Navigate to the repository root
+cd "g:\My Drive\10_Learning\_Research\auto-research"
+
+# 2. Boot up the local hcom messaging swarm TUI
 python scripts\launch.py
+
+# 3. View the swarm status dashboard & cost metrics
 python scripts\status.py
-python scripts\run_pipeline.py --depth medium "Quantum error correction 2026"
+
+# 4. Kick off a research topic with default depth
+python scripts\run_pipeline.py "Quantum error correction 2026"
+
+# 5. Run the end-to-end smoke test suite to verify pipeline integrity
+$env:PYTHONPATH="src"
+python -m research_pipeline.cli.smoke_v2
 ```
 
-The scripts set the repo-local `HCOM_DIR` and reclaim the `bigboss` sender identity automatically. See the full runbook at [`.docs/runbooks/pipeline_start_guide.md`](.docs/runbooks/pipeline_start_guide.md).
+> [!TIP]
+> For a detailed walkthrough on setting up and running the swarm, refer to the [Pipeline Start Guide](file:///g:/My%20Drive/10_Learning/_Research/auto-research/.docs/runbooks/pipeline_start_guide.md) and the [Configuration Guide](file:///g:/My%20Drive/10_Learning/_Research/auto-research/.docs/runbooks/configuration_guide.md).
 
-## The pipeline (6 stages)
+---
+
+## 📊 The 6-Stage Pipeline
+
+The pipeline processes inputs sequentially, while the **Critic** acts as an independent quality guardrail verifying each output before letting the orchestrator advance:
 
 ```
 inputs/inbox/*  →  00_research →  01_ingest  →  02_extract  →  03_analyze  →  04_synthesize  →  05_format  →  outputs/<id>/
@@ -23,156 +41,107 @@ inputs/inbox/*  →  00_research →  01_ingest  →  02_extract  →  03_analyz
                                   └────── critic validates each stage (writes meta, retries on fail) ──────┘
 ```
 
-| Stage | Agent | Skill | Output |
+| Stage | Agent | Skill Trigger | Output Artifact |
 |---|---|---|---|
-| `00_research` | researcher | WebSearch + WebFetch → dossier (always runs first; depth from `--depth` CLI flag) | `v1.json` |
-| `01_ingest` | ingestor | URL/PDF/DOCX/text → plain text (merges dossier from research) | `v1.txt` (+ optional `v1.json` with metadata) |
-| `02_extract` | extractor | entities, facts, quotes (up to 3 different approaches) | `options/{A,B,C}/v1.json` |
-| `03_analyze` | analyzer | themes, gaps, contradictions | `v1.json` |
-| `04_synthesize` | synthesizer | TL;DR, insights, narrative | `v1.json` |
-| `05_format` | formatter | research-report template | `v1.json` (machine) + `v1.md` (human) |
+| `00_research` | `researcher` | Iterative WebSearch + WebFetch | `00_research/v1.json` (Topic, sources, synthesis) |
+| `01_ingest` | `ingestor` | Doc parsing + Semantic Chunking | `01_ingest/v1.txt` (Merged dossier context) |
+| `02_extract` | `extractor` | Parallel entities, facts & quotes extraction | `02_extract/options/{A,B,C}/v1.json` → Winner `v1.json` |
+| `03_analyze` | `analyzer` | Cross-fact thematic & gap analysis | `03_analyze/v1.json` (Themes, contradictions, gaps) |
+| `04_synthesize` | `synthesizer` | Insight synthesis + Mermaid charts | `04_synthesize/v1.json` (TL;DR, narrative, diagrams, theses) |
+| `05_format` | `formatter` | Report templating & finalization | `05_format/v1.json` (Machine-readable) & `v1.md` (Human report) |
 
-After each stage, the **critic** runs `tools.validator.validate_artifact` — schema + completeness + (optional) LLM-as-judge. On fail, the orchestrator retries the stage agent with feedback. On max-retries-exhausted, the pipeline halts for that input.
+---
 
-## The 8 agents
+## 🌟 Swarm Features & Invariants (v1.5.0)
 
-| # | Tag | Runtime spec | hcom target |
-|---|---|---|---|
-| 1 | `orch` | `.claude/agents/orchestrator.{md,json}` | `@research-pipeline-claude-1` |
-| 2 | `research` | `.claude/agents/researcher.{md,json}` | `@research-pipeline-claude-8` |
-| 3 | `ingest` | `.claude/agents/ingestor.{md,json}` | `@research-pipeline-claude-2` |
-| 4 | `extract` | `.claude/agents/extractor.{md,json}` | `@research-pipeline-claude-3` |
-| 5 | `analyze` | `.claude/agents/analyzer.{md,json}` | `@research-pipeline-claude-4` |
-| 6 | `synth` | `.claude/agents/synthesizer.{md,json}` | `@research-pipeline-claude-5` |
-| 7 | `critic` | `.claude/agents/critic.{md,json}` | `@research-pipeline-claude-6` |
-| 8 | `format` | `.claude/agents/formatter.{md,json}` | `@research-pipeline-claude-7` |
+This swarm is optimized for token efficiency, reliability, security, and strict quality verification:
 
-## File map
+### 🔒 Swarm Security & Red-Teaming
+- **Static Secret Scanning**: Automatically detects AWS credentials, GitHub PATs, Slack webhooks, and private keys in input files via `security_gates.py`.
+- **Absolute Path Traversal Block**: Rejects any inputs containing directory traversal sequences (`../`, `..\\`) to prevent host directory access.
+- **Input Size Hard Constraints**: Rejects inputs exceeding 2MB at the security gate to prevent Denial of Service (DoS) and context overflow.
+- **Adversarial Test Suite**: Includes automated red-team cases (`evals/security-redteam/`) to validate static protections.
 
-```
-~/autoresearch-agentic-folder/
-├── pipeline.json                   # single source of truth: stages, schemas, retries
-├── AGENTS.md / CLAUDE.md           # team memory and project instructions
-├── prd.json                        # pipeline state (gitignored)
-├── progress.md                     # append-only audit log
-├── learnings.md                    # team knowledge base
-├── schemas/                        # JSON schemas (the "output parser" library)
-├── inputs/{inbox,processed}/       # content to research
-├── outputs/<id>/                   # one folder per input
-│   ├── 01_ingest/v1.txt + v1.meta.json
-│   ├── 02_extract/options/{A,B,C}/v1.json + v1.meta.json
-│   ├── 02_extract/v1.json         # critic's winner
-│   ├── 03_analyze/v1.json + v1.meta.json
-│   ├── 04_synthesize/v1.json + v1.meta.json
-│   ├── 05_format/v1.json + v1.md + v1.meta.json
-│   └── manifest.json               # audit trail for this input
-├── src/research_pipeline/          # importable Python implementation
-│   ├── paths.py                    # canonical repo/runtime paths
-│   ├── tools/                      # artifact I/O, manifest, validator, hcom helpers
-│   ├── gates/                      # rule-based validation gates
-│   └── cli/                        # implementations behind scripts/*.py
-├── tools/                          # compatibility shims for python -m tools.*
-├── gates/                          # compatibility shims + gate docs
-├── scripts/                        # stable launch/run wrappers
-├── .claude/
-│   ├── agents/                     # 8 runtime agent specs
-│   ├── skills/                     # stage skills, fixtures, templates, rubrics
-│   └── settings.json               # Claude/hcom hooks and permissions
-├── .docs/
-│   ├── runbooks/                   # user-facing operating guides
-│   ├── agentic/                    # canonical agent/skill design specs
-│   ├── version/                    # versioned change notes
-│   ├── reports/                    # audit reports
-│   ├── plans/                      # design proposals
-│   └── source/                     # external papers and upstream references
-├── evals/                          # golden tasks, rubrics, scorecards
-└── observability/                  # trace schemas and dashboards
-```
+### ⚙️ Automated Validation Gates
+- **Input Gate (`input_gates.py`)**: Probes incoming URLs using responsive HEAD/GET requests with redirects/timeouts and checks maximum input limits (5MB).
+- **Implementation Gate (`implementation_gates.py`)**: Verifies that artifacts conform to version formats (`v\d+`), stage folders are generated, and upstream parent stages have winner decisions.
+- **Release Gate (`release_gates.py`)**: Validates that all 6 stages have picked winners, the run is marked `completed_at`, and the formatted report (`v1.md`) is populated before releasing.
 
-The root `scripts/`, `tools/`, and `gates/` folders are kept intentionally as compatibility surfaces. New Python implementation should go under `src/research_pipeline/`.
+### 💡 Performance & Swarm Optimizations
+- **Parallel Extraction**: Dispatches options A, B, and C concurrently during `02_extract` to separate Claude worker tags, cutting stage duration by ~60%.
+- **Depth-Aware Research**: Adjusts search strategy dynamically:
+  - `shallow`: 1 round, 3 queries, ≤3 sources.
+  - `medium`: 2 rounds, 5 queries, ≤7 sources.
+  - `deep`: 3 rounds, 5 queries, ≤15 sources.
+- **Inter-run Deduplication**: Checks `outputs/` for completed manifests. Skips executing identical inputs unless the `--force` flag is specified.
+- **URL Caching & Retries**: Employs global JSON response caching under `outputs/.cache/` and exponential backoff retries (3 attempts) on URL fetches.
+- **Semantic Ingest Chunking**: Replaces naive 1MB truncation with keyword-density semantic chunking (40KB blocks sorted by topic relevance) when inputs exceed 1MB.
+- **Self-Rebuttal Metadata**: Records Synthesizer peer reviews (`self_rebuttal_passed`, `self_rebuttal_notes`) inside `v1.meta.json`.
 
-## The 5 hard invariants
+### 📊 Observability & Telemetry
+- **Swarm Cost Dashboard**: Prints token consumption, tool use counters, and estimated USD cost directly on the `status.py` dashboard.
+- **Trace Logs**: Emits stage execution performance events to `outputs/<id>/trace.jsonl`.
+- **Swarm Execution Dashboard CLI**: Aggregates all JSON traces (`observability/traces/`) and performance metrics to generate ASCII summaries via:
+  ```powershell
+  python -m research_pipeline.tools.observability.render_dashboard <run_id>
+  ```
+- **Aggregate Metrics**: Log aggregate statistics (duration, token totals, tools count, average score, pass status) to `observability/aggregate_metrics.jsonl`.
+- **GitHub Actions CI/CD**: Automatically installs dependencies and executes smoke test checks on push/PR events to `main`.
 
-1. **`pipeline.json` is the source of truth.** To change the pipeline, edit it — not the agent prompts.
-2. **Every artifact has a sibling `.meta.json`.** Producer + critic both write to it.
-3. **Critic is the only validator.** Producers do not self-validate.
-4. **Versioned, not overwritten.** v1, v2, v3 — never silent overwrite.
-5. **`manifest.json` is the audit trail.** Required for a pipeline to be "done".
+---
 
-## How the artifact versioning works
+## 📁 Repository Directory Map
 
 ```
-outputs/<id>/02_extract/        # multi-option stage
-  options/
-    A/v1.json
-    A/v1.meta.json
-    B/v1.json
-    B/v1.meta.json
-    C/v1.json
-    C/v1.meta.json
-  v1.json                        # critic's winner (copy of options/<X>/v1.json)
-  v1.meta.json                   # has picked_option, picked_score
+auto-research/
+├── pipeline.json                   # Single source of truth: stages, schemas, budgets, and skill triggers
+├── AGENTS.md / CLAUDE.md           # Team invariants, agent details, and guidelines (read-only for agents)
+├── prd.json                        # Pipeline execution state (validated against schemas/prd.json)
+├── progress.md                     # Append-only swarm stage transition logs
+├── learnings.md                    # Cumulative swarm knowledge base (auto-updated on run success/failures)
+├── schemas/                        # JSON Draft-7 schemas for stages, prd.json, and agent/skill contracts
+├── inputs/                         # Inbox (incoming research requests) and Processed (archived requests)
+├── outputs/<input_id>/             # Versioned outputs per run:
+│   ├── 0X_stage/vN.json            # Artifact output
+│   ├── 0X_stage/vN.meta.json       # Metadata containing producer, validation status, and self-rebuttal
+│   ├── trace.jsonl                 # Performance telemetry events
+│   ├── task_plan.md                # Living status checklist for the run
+│   └── manifest.json               # Canonical audit trail with winner picks
+├── src/research_pipeline/          # Core package code:
+│   ├── paths.py                    # Repository path mappings
+│   ├── tools/                      # Core tools (artifact_io, fetch_input, manifest, memory_retriever, validator)
+│   ├── gates/                      # Gate rule definitions (input, security, implementation, release, output)
+│   └── cli/                        # Swarm terminal commands (run_pipeline, status, smoke_v2, validate_specs)
+├── tools/ & gates/ & scripts/      # Root compatibility shims forwarding calls to src/research_pipeline/
+├── evals/                          # Evals suite (golden tasks, rubric, scorecards, security red-team files)
+└── observability/                  # Audit log schemas, aggregate metrics, and dashboards
 ```
 
-```
-outputs/<id>/03_analyze/        # linear stage
-  v1.json
-  v1.meta.json                   # validation: pass, score: 0.82, feedback: ...
-  v2.json                        # if retry
-  v2.meta.json                   # validation: pass, score: 0.88, ...
-```
+---
 
-Every `v1.meta.json` looks like:
-```json
-{
-  "version": 1,
-  "stage": "02_extract",
-  "input_id": "abc12345",
-  "producer": "extractor",
-  "produced_at": "2026-06-01T12:34:56Z",
-  "parent_ref": "01_ingest/v1.txt",
-  "schema_version": "1.0",
-  "validation": {
-    "status": "pass",
-    "validator": "critic",
-    "validated_at": "2026-06-01T12:35:10Z",
-    "score": 0.85,
-    "feedback": "all checks passed",
-    "checks": {"schema": "pass", "completeness": "pass", "llm_judge": "pass"}
-  }
-}
+## 🛠 Invariants & Team Memory
+
+Every agent in the swarm must adhere strictly to these invariants:
+1. **`pipeline.json` is the sole source of truth**: Stages, budgets, schemas, and retries are defined here.
+2. **Every artifact has a sibling `.meta.json`**: No bare artifacts. Contains validation scores and feedback.
+3. **Critic is the only validator**: Producers do not self-validate. If a validation score is < 0.5, the critic logs failure patterns directly to `learnings.md`.
+4. **Versioned, not overwritten**: All changes write to incremented versions (`v1`, `v2`, `v3`).
+5. **`manifest.json` is the audit trail**: Required to be complete and finalized for a run to be considered "done".
+6. **Research runs first**: Every input goes through `00_research` before `01_ingest`.
+7. **Planning with Files**: Maintain a living checklist `task_plan.md` inside `outputs/<input_id>/` to coordinate steps.
+
+---
+
+## 💡 Quality Feedback Loop
+
+```
+[ Stage Agent Writes v1.json ]
+            ↓
+[ Critic runs validate_artifact() ]
+            ↓
+    Score < 0.5?
+        ├── YES ──> [ Auto-log failure pattern to learnings.md ] ──> [ Send retry to Agent ]
+        └── NO  ──> [ Record attempt as Pass ] ──> [ Advance Stage ]
 ```
 
-## Adding a new pipeline stage
-
-1. Add the stage to `pipeline.json` (id, agent, schema, max_retries, max_options).
-2. Create `schemas/<NN>_<name>.json`.
-3. Create `.claude/agents/<role>.md` and `.claude/agents/<role>.json` describing the agent.
-4. Update `AGENTS.md` file-ownership table to list the new paths.
-5. Run `./scripts/status.sh` to verify.
-
-The orchestrator reads `pipeline.json` at runtime; no other code change is needed.
-
-## Retargeting for a different task
-
-To use this for something other than content research (e.g., log analysis, code review, customer-feedback triage), edit:
-
-- `pipeline.json` — change `stages[].agent` and `schemas/*` to point at your new task
-- Each `.claude/agents/<role>.md` and `.claude/skills/<stage>/` — rewrite the role and skill behavior
-- `schemas/*.json` — replace with your task's output shape
-
-The folder structure, hcom coordination, critic loop, and artifact versioning stay the same.
-
-## Out of scope (V1)
-
-- Multi-language research (search arxiv/web in other languages)
-- Cross-input correlation (compare insights across many inputs)
-- Persistent memory across runs (knowledge base that grows over time)
-- UI layer (web viewer for `outputs/`)
-- Custom schemas per-input (one global schema set; per-input override is V2)
-- Fine-tuned critic
-- Auto-archival of old `outputs/` to S3/cold storage
-
-## License
-
-Same as upstream — see `LICENSE` if present, otherwise default to your project's standard.
+When the Critic evaluates a stage and assigns an LLM-judge score below `0.5`, the validator automatically appends a detailed failure entry to `learnings.md` with the `@critic` tag. This allows subsequent agents to fetch matching historical failure contexts via the `memory_retriever` tool, avoiding repeating past errors.

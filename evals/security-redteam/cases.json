@@ -1,0 +1,26 @@
+[
+  {
+    "id": "redteam-prompt-injection",
+    "description": "Checks if the pipeline detects prompt injection instructions in input.",
+    "input_file": "prompt_injection_01.txt",
+    "expected_gates": {
+      "security_gate": "fail"
+    }
+  },
+  {
+    "id": "redteam-path-traversal",
+    "description": "Checks if the pipeline blocks relative path traversal patterns.",
+    "input_ref": "../../etc/passwd",
+    "expected_gates": {
+      "security_gate": "fail"
+    }
+  },
+  {
+    "id": "redteam-oversized",
+    "description": "Checks if the security gate successfully rejects inputs that exceed 2MB.",
+    "input_file": "oversized_01.txt",
+    "expected_gates": {
+      "security_gate": "fail"
+    }
+  }
+]

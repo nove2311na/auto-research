@@ -991,3 +991,287 @@ evidence:
 Khi dựng repo agentic cho Claude Code:
 
 > `CLAUDE.md` tells Claude how to think, `.claude/` gives Claude team members and workflows, `agentic/` stores durable knowledge and governance, `scripts/gates/` enforces reality, and `src/` keeps implementation movable.
+
+---
+
+## 18. Harness Architecture Model
+
+*Nguồn cảm hứng: "A Harnessed LLM Agent" diagram — DailyDoseofDS.com*
+
+Harness là control plane bao quanh LLM. Model **đề xuất hành động**, harness **validate, authorize, execute, record, summarize** và trả observation về. Không bao giờ để model tự execute action trực tiếp.
+
+### 18.1. Default harness loop
+
+```text
+user/task
+  → instruction & context builder
+  → model call
+  → tool/action proposal
+  → schema validation
+  → permission decision
+  → execution hoặc approval pause
+  → structured observation
+  → context update
+  → repeat trong budget hoặc finish
+```
+
+### 18.2. Các thành phần của harness
+
+| Thành phần | Vai trò | Vị trí trong repo |
+|---|---|---|
+| **Skills** | SOPs tái dùng, operational procedures | `.claude/skills/*/SKILL.md` |
+| **Normative Constraints** | Guardrails, policy | `agentic/policies/` + `.claude/settings.json` |
+| **Sandbox** | Isolated execution | hook/gate, không để model tự chạy |
+| **Evaluator** | Validator độc lập (critic) | `agents/critic/`, `agentic/evals/` |
+| **Approval Loop** | Human-in-the-loop cho high-risk | `agentic/policies/approval-gates.md` |
+| **Memory** | Episodic + Semantic + Personalized | `agentic/memory/` |
+| **Compression** | Context compaction | `.claude/skills/summarize-context/` |
+| **Observability** | Trace events, metrics | `agentic/logs/`, `observability/` |
+| **Protocols** | Agent-Agent, Agent-User, Agent-Tools | `agentic/orchestration/handoff-contracts.md` |
+| **Sub-Agent Orchestration** | Fan-out workers | `.claude/agents/`, `hcom` hoặc parallel dispatch |
+
+### 18.3. Non-negotiable harness principles
+
+- **Model proposes, harness acts.** Runtime authorization nằm ngoài prompt.
+- **Every tool call gets a result.** Kể cả denial, timeout, error — đều là observation.
+- **Draft và commit tách nhau.** External, financial, destructive actions luôn phải approval trước.
+- **Tool schemas phải narrow, typed, validated locally.**
+- **Context phải cache-aware.** Static prefix lên đầu, dynamic suffix xuống cuối.
+
+---
+
+## 19. Loop Budgets và Stopping Conditions
+
+*Nguồn: agents-best-practices SKILL.md + "Dynamic Workflow" mode*
+
+Agent loop không có budget là nguồn gốc của infinite loop, cost explosion, và agent "hallucination spiral".
+
+### 19.1. Budget dimensions
+
+```yaml
+# agentic/policies/loop-budgets.md hoặc pipeline.json
+budgets:
+  max_retries_per_stage: 3          # lần retry mỗi stage
+  max_total_tool_calls: 50          # hard cap tool calls per run
+  max_wall_time_minutes: 60         # thời gian tối đa
+  max_context_tokens: 180000        # trigger compaction
+  max_cost_usd: 2.00                # optional cost guard
+```
+
+### 19.2. Stopping conditions phải đo được
+
+Goal loop chỉ nên dùng khi có **validation condition rõ ràng**:
+
+```text
+BAD:  "Research the topic thoroughly."
+GOOD: "Compile 10 sources with citation. Stop when source_count >= 10 AND report.md exists."
+```
+
+Mỗi agent cần `stop_conditions` trong frontmatter:
+
+```yaml
+stop_conditions:
+  - task_complete: artifact exists AND validator returns pass
+  - escalate: retry_count >= max_retries
+  - abort: budget exceeded OR secret detected in input
+```
+
+### 19.3. Compaction không được xóa active state
+
+Khi trigger compaction (context quá dài), phải preserve:
+
+- active plan / todo list,
+- approval state đang pending,
+- loaded rules and constraints,
+- changed artifacts list.
+
+Compaction chỉ nén **conversational prose**, không nén **working state**.
+
+---
+
+## 20. Memory Layer Design
+
+*Nguồn: build-a-agent.md (memory.md pattern) + Agentic.md*
+
+Agent không có persistent memory trừ khi bạn build nó. Với agentic repo, memory là thứ phân biệt "agent mới mỗi ngày" với "agent cộng tác thật sự".
+
+### 20.1. Ba loại memory cần tách
+
+```text
+agentic/memory/
+  candidates/          # staging — chưa authoritative, raw observations
+  durable-facts.md     # facts đã validate, tái dùng nhiều lần
+  decisions.md         # decisions/ADR summary
+  gotchas.md           # lỗi hay gặp, edge cases
+  failure-patterns.md  # pattern thất bại lặp lại
+  preferences.md       # "personalized memory" — working style của team/user
+  commands-and-recipes.md
+  incidents.md
+```
+
+### 20.2. Memory update loop tự động
+
+Trong `CLAUDE.md` hoặc agent instruction, thêm:
+
+```text
+After each session:
+1. Read agentic/memory/preferences.md — what you know about this team/user.
+2. When corrected or you learn something new, update the relevant section in memory.
+3. Keep memory files current: replace outdated info, do not append duplicates.
+4. Only save substantial corrections, not trivial one-off choices.
+```
+
+### 20.3. Promotion rule từ candidate → durable
+
+```text
+Candidate → Durable chỉ khi:
+[ ] Reusable: áp dụng được ít nhất 3 tình huống khác nhau
+[ ] Validated: đã verified bởi critic hoặc human
+[ ] Non-secret: không chứa credential, token, PII
+[ ] Concise: fit trong < 5 dòng hoặc structured card
+[ ] Source clear: có reference hoặc evidence
+```
+
+### 20.4. Memory size hygiene
+
+- Giữ mỗi memory file < 200 dòng.
+- Archive quarterly: `agentic/memory/archive/YYYY-QN/`.
+- Khi rules step on each other: gộp hoặc xóa rule cũ hơn.
+
+---
+
+## 21. Dynamic Workflow và Parallel Workers
+
+*Nguồn: Agentic.md — "Dynamic Workflow" mode + Multi-Agent System infographic*
+
+### 21.1. Ba operational modes (áp dụng cho repo)
+
+| Mode | Khi dùng | Implementation |
+|---|---|---|
+| **Sub-Agent** | Task đơn lẻ, cần isolation | `use subagents` trong prompt, `.claude/agents/*.md` |
+| **Agent Team** | Pipeline tuần tự có cổng | `hcom` stage routing, `pipeline.json` |
+| **Dynamic Workflow** | Fan-out scale lớn, parallel workers | Script dispatch + asyncio, tối đa 100 workers |
+
+### 21.2. Khi nào escalate từ Agent Team lên Dynamic Workflow
+
+```text
+Dùng Dynamic Workflow khi:
+  - 1 stage cần chạy nhiều workers song song (ví dụ: extract 3 options)
+  - cần independent cross-validation giữa các workers
+  - single linear loop đã fail measurable evals và cần parallelism
+  
+KHÔNG dùng Dynamic Workflow khi:
+  - 1 linear loop giải được vấn đề
+  - chưa có evals để đo failure của single-agent approach
+```
+
+### 21.3. Parallel worker pattern
+
+```text
+Orchestrator
+  → broadcast task to N workers (asyncio.gather hoặc hcom broadcast)
+  → workers chạy song song, emit artifacts độc lập
+  → Critic nhận N results, pick_winner
+  → Orchestrator continue với winner
+```
+
+Trong `pipeline.json`, hỗ trợ:
+
+```json
+{
+  "stages": {
+    "02_extract": {
+      "max_options": 3,
+      "execution_mode": "parallel",   // "sequential" | "parallel"
+      "worker_agent": "extractor"
+    }
+  }
+}
+```
+
+### 21.4. Worker isolation requirements
+
+Mỗi worker phải:
+
+- write vào path riêng (`options/A/`, `options/B/`, `options/C/`),
+- không đọc output của worker khác,
+- emit sibling `.meta.json` với `producer` và `validation.status`,
+- không tự validate (chỉ critic mới validate).
+
+---
+
+## 22. Skills Progressive Disclosure
+
+*Nguồn: agents-best-practices SKILL.md + build-a-agent.md (skills = SOPs)*
+
+### 22.1. Progressive disclosure principle
+
+Không expose tất cả skills ngay từ đầu. Agent biết quá nhiều skills = context waste + decision confusion.
+
+```text
+Stage 1 (discovery): Agent thấy tên skill + 1 dòng description.
+Stage 2 (activation): Khi trigger match, load SKILL.md đầy đủ.
+Stage 3 (execution): Load references/ hoặc scripts/ chỉ khi workflow cần.
+```
+
+### 22.2. Skill trigger phải rõ ràng
+
+Trong `SKILL.md` frontmatter:
+
+```yaml
+---
+name: web-research
+description: >
+  Use when: (1) researching a topic from scratch,
+  (2) fact-checking a claim, (3) finding primary sources.
+  Do NOT use for: internal codebase analysis, file editing.
+---
+```
+
+Không viết description chung chung như `"Research tool"`.
+
+### 22.3. Skill-stage mapping
+
+Trong `pipeline.json`, thêm `skill_triggers` per stage:
+
+```json
+{
+  "stages": {
+    "00_research": {
+      "skill_triggers": ["web-research", "source-validation"]
+    },
+    "02_extract": {
+      "skill_triggers": ["entity-extraction", "quote-mining"]
+    },
+    "05_format": {
+      "skill_triggers": ["markdown-report", "executive-summary"]
+    }
+  }
+}
+```
+
+Orchestrator chỉ load skill khi stage cần, không load tất cả ở đầu session.
+
+### 22.4. Skill size hygiene
+
+```text
+[ ] SKILL.md < 150 dòng (entrypoint, không phải encyclopedia)
+[ ] Detailed variants → references/
+[ ] Deterministic scripts → scripts/
+[ ] Templates → assets/ hoặc templates/
+[ ] KHÔNG tạo README.md phụ trong skill folder
+```
+
+### 22.5. Từ manual process → skill
+
+Pattern từ build-a-agent.md áp dụng cho repo này:
+
+```text
+1. Chạy process thủ công một lần (ví dụ: viết proposal, extract entities).
+2. Sau khi xong: "Create a skill for what we just did."
+3. Skill được package thành SKILL.md + references nếu cần.
+4. Lần sau: agent dùng skill, không cần giải thích lại.
+```
+
+Áp dụng cho pipeline: sau mỗi lần researcher tìm được pattern tốt, extract thành `skills/deep-research-pattern/SKILL.md`.
+

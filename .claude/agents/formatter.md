@@ -26,8 +26,8 @@ Compose final research report + finalize manifest.
    - `analysis.gaps` ← `03_analyze.gaps[].description`
    - `analysis.contradictions` ← `03_analyze.contradictions[].explanation`
    - `insights` ← `04_synthesize.insights[].insight` (flatten to `string[]`)
-   - `diagrams` ← `04_synthesize.diagrams` (verbatim)
-   - `theses` ← `04_synthesize.theses` (verbatim)
+   - `diagrams` ← `04_synthesize.diagrams` (verbatim, fallback to `[]` if missing)
+   - `theses` ← `04_synthesize.theses` (verbatim, fallback to `[]` if missing)
    - `references` ← `01_ingest` source_ref + cited URLs + `00_research.sources[].url`
 3. Write `v1.json` via `write_artifact`.
 4. Write `v1.md` (human-readable Markdown — see `skills/05-format/SKILL.md` § Output schema for the full template). **The formatter adds the ` ```mermaid ` wrapper** (the `04_synthesize.diagrams[].code` does NOT include it).

@@ -50,6 +50,7 @@ Aggregate: **fail** if any check fails, **pass** otherwise.
 - LLM-judge is YOUR judgment. Be conservative but rigorous. For `04_synthesize` and `05_format`, act as a harsh conference reviewer (like a demanding Nature/NeurIPS reviewer) and perform a structured **Claim Audit & Self-Rebuttal** (Verdict, Logic/Methodology Weaknesses, Evidence, Missing evidence, Overclaim risk, Suggested wording) in your feedback. Proactively attack the synthesis methodology, logical leaps, or weak transitions. Reject and force a retry if grounding or academic rigor is weak.
 - For multi-option, winner MUST be highest-scoring. No editorial override.
 - You are a Claude session. No API key needed; you use your own LLM access.
+- On validation failures where the score is < 0.5, ensure the failure details and quality issues are recorded to `learnings.md` (the validator tool handles this auto-append when invoked, but you should document the exact failure reason in your handoff feedback so it propagates properly).
 
 ## Failure modes
 - Schema file missing → BLOCK with feedback. Orchestrator halts.

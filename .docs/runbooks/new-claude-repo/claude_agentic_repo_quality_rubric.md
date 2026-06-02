@@ -45,14 +45,16 @@ If a hard gate fails, the repo cannot be marked production-ready regardless of a
 
 | Criterion | Weight | 1 | 3 | 5 |
 |---|---:|---|---|---|
-| Claude-facing clarity | 15% | Claude entrypoint missing/confusing | `CLAUDE.md` exists with basic commands/rules | Concise briefing, clear workflows, links to deeper docs |
-| Agent role design | 15% | Agents absent or overlapping | Core agents exist with basic roles | Roles are bounded, tools limited, output contracts clear |
-| Skill workflow quality | 15% | Skills absent or verbose docs only | Core skills exist and are usable | Skills are concise, triggerable, with scripts/references where useful |
-| Safety and permissions | 15% | Secrets/destructive commands not controlled | Basic deny/ask rules exist | Settings + hooks + policies enforce high-risk behavior |
-| Validation and gates | 15% | No deterministic validation | Basic quality/secret gate exists | Stack-aware gates, structure checker, evals, clear acceptance |
-| Knowledge and memory | 10% | Knowledge mixed into prompts/transcripts | `agentic/knowledge` and memory candidates exist | Durable/candidate split, promotion rules, source/validation required |
-| Move-safe layout | 10% | Path logic scattered, commands break after move | Some wrappers/path conventions exist | Stable public surface, `src` implementation, central path resolver |
-| Generator safety | 5% | Scaffold overwrites files | Basic no-overwrite policy | Conflict report, dry-run, merge policy, move log |
+| Claude-facing clarity | 12% | Claude entrypoint missing/confusing | `CLAUDE.md` exists with basic commands/rules | Concise briefing, clear workflows, links to deeper docs |
+| Agent role design | 12% | Agents absent or overlapping | Core agents exist with basic roles | Roles are bounded, tools limited, output contracts clear |
+| Skill workflow quality | 10% | Skills absent or verbose docs only | Core skills exist and are usable | Skills are concise, triggerable, progressive disclosure applied |
+| Safety and permissions | 12% | Secrets/destructive commands not controlled | Basic deny/ask rules exist | Settings + hooks + policies enforce high-risk behavior |
+| Validation and gates | 12% | No deterministic validation | Basic quality/secret gate exists | Stack-aware gates, structure checker, evals, clear acceptance |
+| Knowledge and memory | 10% | Knowledge mixed into prompts/transcripts | `agentic/knowledge` and memory candidates exist | Durable/candidate split, promotion rules, auto-update loop |
+| Move-safe layout | 8% | Path logic scattered, commands break after move | Some wrappers/path conventions exist | Stable public surface, `src` implementation, central path resolver |
+| Harness loop integrity | 10% | No harness separation; model self-executes | Basic tool boundary exists | Full harness loop: validate → authorize → execute → observe |
+| Loop budgets & stopping | 8% | No budget/stopping conditions | Some max_retries defined | Budget dimensions set, measurable stop conditions, compaction preserves state |
+| Generator safety | 6% | Scaffold overwrites files | Basic no-overwrite policy | Conflict report, dry-run, merge policy, move log |
 
 Score formula:
 
@@ -281,16 +283,73 @@ evidence:
 - Has `CLAUDE.md`, `.claude/settings.json`, one global rule, quality gate.
 - No subagent team.
 - No memory/policy system.
+- No loop budgets or harness separation.
 - Good for small repo, not enough for high-risk work.
 
 ### Standard repo that should score around 4.0
 
 - Has core agents, skills, policies, memory candidates, quality gate.
 - Hooks may be partial.
+- Has basic loop budgets in `pipeline.json` or agent frontmatter.
+- Memory has candidate/durable split.
 - Good for day-to-day agentic development.
 
 ### Full governed repo that should score 4.5+
 
 - Has hooks, evals, policy, memory promotion, security gates, ADR workflow.
 - Has rule-based structure validator.
+- Harness loop fully separated from model; all tool calls get results.
+- Loop budgets across all dimensions (retries, time, tokens, cost).
+- Measurable stop conditions per agent.
+- Memory auto-update loop in agent instructions.
+- Skills use progressive disclosure; stage-to-skill mapping documented.
 - Good for repeated multi-agent work and repo generation.
+
+---
+
+## 7. Extended File-Level Rubric
+
+### 7.1. Harness Loop Integrity
+
+Applies to: `.claude/agents/*.md`, `agentic/policies/`, hooks
+
+| Criterion | 1 | 3 | 5 |
+|---|---|---|---|
+| Model/harness separation | Model self-executes actions | Some tool boundary exists | Model only proposes; harness validates+executes |
+| Every tool gets a result | Missing results on error/denial | Timeout handled | Denial, timeout, error, abort all return observations |
+| Draft/commit separation | External writes happen immediately | Some approval for high-risk | All external/financial/destructive require approval record |
+| Tool schema narrowness | Broad tools like `execute_anything` | Mostly scoped | All tools narrow, typed, locally validated |
+
+### 7.2. Loop Budgets và Stopping Conditions
+
+Applies to: `pipeline.json`, `agentic/policies/loop-budgets.md`, agent frontmatter
+
+| Criterion | 1 | 3 | 5 |
+|---|---|---|---|
+| Budget defined | No budgets | Only max_retries | All dimensions: retries, tool calls, time, tokens, cost |
+| Stopping condition | Vague "when done" | Some explicit checks | Measurable done condition (artifact exists AND validator pass) |
+| Compaction safety | Compaction erases active state | Some state preserved | Plan, approvals, rules, artifacts all preserved across compaction |
+| Escalation path | Agent loops indefinitely | Retries then stops | Clear escalate/abort conditions on budget exhaustion |
+
+### 7.3. Memory Auto-Update Loop
+
+Applies to: `agentic/memory/`, `CLAUDE.md` agent instructions
+
+| Criterion | 1 | 3 | 5 |
+|---|---|---|---|
+| Auto-update instruction | No instruction to update memory | Manual update mentioned | Explicit "update memory after correction" in agent instructions |
+| Candidate/durable split | Raw memory dumped into one file | Candidates folder exists | Full lifecycle: candidate → validate → promote → archive |
+| Size hygiene | Files grow unbounded | Some pruning noted | Files capped, archive path defined, anti-duplication rule |
+| Preferences captured | No personalized memory | Working preferences noted | `preferences.md` maintained per team/user, prevents repeated mistakes |
+
+### 7.4. Parallel Workers / Dynamic Workflow
+
+Applies to: `pipeline.json`, `agentic/orchestration/`, agent specs
+
+| Criterion | 1 | 3 | 5 |
+|---|---|---|---|
+| Mode selection rationale | Always parallel or always sequential | Mode mentioned | Explicit decision rule: when to use sequential vs parallel vs fan-out |
+| Worker isolation | Workers share output paths | Separate output folders | Strict path isolation + no cross-reading between workers |
+| Critic integration | Workers self-validate | Critic invoked after parallel | Only critic picks winner; workers never self-validate |
+| Budget enforcement | No total budget across workers | Per-worker budgets | Total aggregate budget across all parallel workers |
+

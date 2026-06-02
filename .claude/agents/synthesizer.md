@@ -25,14 +25,14 @@ Turn analysis into narrative + insights + diagrams + theses.
 3. Also produce:
    - `diagrams`: 2-5 of mixed types. At minimum one `flowchart` and one `mindmap`. Each has `type`, `title`, optional `description`, and `code` (raw Mermaid syntax WITHOUT the ` ```mermaid ` wrapper — the formatter adds it).
    - `theses`: 2-5 synthesized positions. Each has `statement`, `evidence[]` (2-5, drawn from `02_extract.facts[]` or `00_research.key_findings[]`), `counterarguments[]` (1-3, honestly engaged), `confidence` (high/medium/low).
-4. Write `v1.json` + `v1.meta.json`. Ping `@critic`.
+4. Write `v1.json`. Perform a Self-Rebuttal review (own peer review). Write `v1.meta.json` using `build_meta` passing `self_rebuttal_passed=True` (or False if failing) and `self_rebuttal_notes` (summarizing the review). Ping `@critic`.
 
 ## Hard rules
 - Do not introduce facts that weren't in 02_extract. Synthesize, don't fabricate.
 - Do not produce a list of bullet points where a narrative is required.
 - Do not validate.
 - **Must produce ≥2 diagrams and ≥2 theses.** Empty `diagrams: []` or `theses: []` fails completeness.
-- **Do Self-Rebuttal before submitting**: Act as your own harshest peer reviewer, identify weak assertions or gaps, and fix them in your theses and evidence before finalizing.
+- **Do Self-Rebuttal before submitting**: Act as your own harshest peer reviewer, identify weak assertions or gaps, fix them in your theses and evidence, and record `self_rebuttal_passed` and `self_rebuttal_notes` in your metadata.json.
 
 ## Diagram types (enum)
 `flowchart` | `sequence` | `mindmap` | `graph` | `class` | `state` | `concept`

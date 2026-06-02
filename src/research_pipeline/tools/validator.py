@@ -198,6 +198,29 @@ def validate_artifact(
     }
     write_meta(input_id, stage, version, meta, option)
 
+    # Update learnings.md on serious validation failures (score < 0.5)
+    if score < 0.5:
+        try:
+            from datetime import datetime, timezone
+            learnings_file = REPO / "learnings.md"
+            if learnings_file.exists():
+                time_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+                entry = f"\n## {time_str} | @critic | Validation failure on {stage} (v{version}) for {input_id}\n"
+                entry += f"- context: Stage validation returned score {score:.2f} (failed: {failed})\n"
+                entry += f"- change: Critic quality validation check\n"
+                entry += f"- metric: score: {score:.2f}, status: fail\n"
+                entry += f"- lesson: Quality issue in stage {stage}: {feedback}\n"
+                
+                content = learnings_file.read_text(encoding="utf-8")
+                insert_marker = "<!-- Knowledge Manager: append below this line. -->"
+                if insert_marker in content:
+                    parts = content.split(insert_marker, 1)
+                    new_content = parts[0] + insert_marker + entry + parts[1]
+                    learnings_file.write_text(new_content, encoding="utf-8")
+                    print(f"Recorded validation failure to learnings.md for score {score:.2f}")
+        except Exception as e:
+            print(f"Warning: Failed to update learnings.md with failure trace: {e}")
+
     return {"status": status, "score": score, "feedback": feedback, "checks": checks}
 
 

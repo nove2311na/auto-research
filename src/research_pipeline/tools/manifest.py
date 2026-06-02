@@ -108,10 +108,80 @@ def record_attempt(
 
 
 def finalize(input_id: str) -> None:
-    """Mark the manifest as completed (sets completed_at)."""
+    """Mark the manifest as completed (sets completed_at) and append lessons to learnings.md."""
     manifest = read_manifest(input_id) or {}
     manifest["completed_at"] = now_iso()
     write_manifest(input_id, manifest)
+    
+    # Auto-update learnings.md
+    try:
+        from datetime import datetime, timezone
+        learnings_file = REPO / "learnings.md"
+        if learnings_file.exists():
+            time_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+            ref = manifest.get("input_ref", input_id)
+            stages = manifest.get("stages", [])
+            avg_score = 0.0
+            scores = [a.get("score", 0.0) for s in stages for a in s.get("attempts", []) if a.get("score")]
+            if scores:
+                avg_score = sum(scores) / len(scores)
+            
+            entry = f"\n## {time_str} | @format | Completed research run for {input_id}\n"
+            entry += f"- context: Run research on {ref}\n"
+            entry += f"- change: Automatic execution through all stages\n"
+            entry += f"- metric: Average validator score: {avg_score:.2f}, status: success\n"
+            entry += f"- lesson: Successfully processed inputs dynamically using the automated 6-stage pipeline.\n"
+            
+            content = learnings_file.read_text(encoding="utf-8")
+            insert_marker = "<!-- Knowledge Manager: append below this line. -->"
+            if insert_marker in content:
+                parts = content.split(insert_marker, 1)
+                new_content = parts[0] + insert_marker + entry + parts[1]
+                learnings_file.write_text(new_content, encoding="utf-8")
+                print("learnings.md updated successfully")
+    except Exception as e:
+        print(f"Warning: Failed to update learnings.md: {e}")
+
+    # Append stats to observability/aggregate_metrics.jsonl
+    try:
+        from research_pipeline.paths import OBSERVABILITY
+        agg_file = OBSERVABILITY / "aggregate_metrics.jsonl"
+        OBSERVABILITY.mkdir(parents=True, exist_ok=True)
+
+        # Calculate tokens and tool calls from trace.jsonl if it exists
+        total_tokens = 0
+        total_tool_calls = 0
+        total_duration_ms = 0
+        trace_file = OUTPUTS / input_id / "trace.jsonl"
+        if trace_file.exists():
+            for line in trace_file.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    tdata = json.loads(line)
+                    total_tokens += tdata.get("tokens_used", 0)
+                    total_tool_calls += tdata.get("tool_calls_count", 0)
+                    total_duration_ms += tdata.get("duration_ms", 0)
+
+        # Compute avg score
+        stages = manifest.get("stages", [])
+        scores = [a.get("score", 0.0) for s in stages for a in s.get("attempts", []) if a.get("score")]
+        avg_score = sum(scores) / len(scores) if scores else 0.0
+
+        agg_data = {
+            "input_id": input_id,
+            "completed_at": manifest.get("completed_at", now_iso()),
+            "total_duration_ms": total_duration_ms,
+            "total_tokens": total_tokens,
+            "total_tool_calls": total_tool_calls,
+            "average_score": round(avg_score, 4),
+            "status": "success" if is_done(input_id) else "failed"
+        }
+
+        with open(agg_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(agg_data, ensure_ascii=False) + "\n")
+        print("aggregate_metrics.jsonl updated successfully")
+    except Exception as e:
+        print(f"Warning: Failed to update aggregate_metrics.jsonl: {e}")
+
 
 
 def is_done(input_id: str) -> bool:

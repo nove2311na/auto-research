@@ -77,6 +77,23 @@ def log_final(args: argparse.Namespace) -> int:
     return 0
 
 
+def log_stage_perf(args: argparse.Namespace) -> int:
+    import json
+    p = OUTPUTS / args.run_id / "trace.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "stage": args.stage,
+        "duration_ms": args.duration_ms,
+        "tokens_used": args.tokens_used,
+        "tool_calls_count": args.tool_calls_count,
+        "timestamp": now_iso(),
+    }
+    with open(p, "a", encoding="utf-8") as f:
+        f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    print(f"appended to {p}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Append a trace event")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -107,6 +124,14 @@ def main(argv: list[str] | None = None) -> int:
     p_f.add_argument("--task")
     p_f.add_argument("--reason")
     p_f.set_defaults(func=log_final)
+
+    p_sp = sub.add_parser("stage_perf")
+    p_sp.add_argument("--run-id", required=True)
+    p_sp.add_argument("--stage", required=True)
+    p_sp.add_argument("--duration-ms", required=True, type=int)
+    p_sp.add_argument("--tokens-used", required=True, type=int)
+    p_sp.add_argument("--tool-calls-count", required=True, type=int)
+    p_sp.set_defaults(func=log_stage_perf)
 
     args = parser.parse_args(argv if argv is not None else sys.argv[1:])
     return cast(int, args.func(args))

@@ -247,3 +247,120 @@ Runtime State
 ```
 
 Khi muốn dọn repo, move lớp **Implementation** trước. Đừng động mạnh vào **Contract** và **Runtime State** nếu chưa có migration riêng.
+
+---
+
+## 13. Context Engineering: Quan trọng hơn Prompt Engineering
+
+*Nguồn: build-a-agent.md — "prompt engineering → context engineering"*
+
+Với agent repo, thứ quyết định chất lượng output không phải là "prompt hoàn hảo" mà là **bạn load được bao nhiêu context đúng vào đúng lúc**.
+
+### 13.1. Nguyên tắc context loading
+
+```text
+Tốt:  "write me a cold email"  +  [agents.md chứa đủ context về business]
+Xấu:  "write me a cold email for [company] targeting [ICP] in [tone] with [specifics]..."
+```
+
+Prompt ngắn + context tốt = kết quả tốt hơn prompt dài + context nghèo.
+
+### 13.2. Context hierarchy cho repo
+
+```text
+Level 1 — Always loaded (CLAUDE.md):
+  - Project identity, repo map, hard rules, common commands
+  - Max ~200 dòng, KHÔNG load file dài bằng @path
+
+Level 2 — Loaded on demand (.claude/rules/*.md):
+  - Rules path-specific, chỉ load khi làm việc trong vùng đó
+  - Ví dụ: database/migration-rls.md chỉ load khi làm việc trong db/
+
+Level 3 — Stage-triggered (skills, knowledge):
+  - agentic/knowledge/* — chỉ load khi agent cần context dài
+  - .claude/skills/*/SKILL.md — chỉ load khi trigger match
+
+Level 4 — Session-built (memory):
+  - agentic/memory/preferences.md — personalized, load ở đầu session
+  - outputs/<id>/* — artifacts của pipeline hiện tại
+```
+
+### 13.3. Context ordering cho prompt caching
+
+```text
+Static → Dynamic (từ trên xuống trong prompt):
+  1. System instructions (CLAUDE.md, rules) — TĨNH, cache được
+  2. Role-specific knowledge (skills, agent spec) — ít thay đổi, cache được
+  3. Session memory (preferences.md) — ít thay đổi, cache được
+  4. Retrieval results (artifacts, evidence) — thay đổi per-task
+  5. Current user task — ĐỘNG, không cache được
+
+ĐỪNG đặt timestamp, request ID, hoặc env state trước các file tĩnh lớn.
+Nếu thay đổi phần đầu, cache bust toàn bộ = mất 60-90% savings.
+```
+
+### 13.4. Context folder pattern
+
+Nếu context nhiều, dùng context folder thay vì dump vào `CLAUDE.md`:
+
+```text
+agentic/knowledge/
+  project-overview.md
+  system-map.md
+  icp-profile.md        # ideal customer profile
+  brand-voice.md
+  api-contracts.md
+```
+
+Trong `CLAUDE.md`:
+```text
+Before answering any question, read agentic/knowledge/ to understand the project.
+```
+
+---
+
+## 14. Agent-Legible Environment
+
+*Nguồn: agents-best-practices — "agent-legibility-feedback-loops.md"*
+
+Durable knowledge phải sống trong **agent-readable source-of-truth artifacts**, không chỉ trong chat history.
+
+### 14.1. Nguyên tắc
+
+```text
+Repeated failures should become:
+  - tools (nếu là action lặp lại)
+  - validators/gates (nếu là quality check lặp lại)
+  - docs (nếu là knowledge lặp lại)
+  - evals (nếu là test case lặp lại)
+  - policies (nếu là rule lặp lại)
+
+KHÔNG phải: "nhắc agent trong prompt mỗi lần"
+```
+
+### 14.2. Source-of-truth artifacts
+
+```text
+pipeline.json          → source of truth cho pipeline behavior
+schemas/*.json         → source of truth cho artifact format
+agentic/memory/gotchas.md    → source of truth cho known edge cases
+agentic/policies/*.md  → source of truth cho approval rules
+agentic/knowledge/*.md → source of truth cho project context
+```
+
+Agent đọc từ artifacts, không phải từ chat history. Chat history là ephemeral.
+
+### 14.3. Recurring cleanup
+
+Định kỳ (weekly hoặc per sprint), review:
+
+```text
+[ ] agentic/memory/ có stale facts không?
+[ ] .claude/rules/ có rules mâu thuẫn không?
+[ ] agentic/evals/ có test cases lỗi thời không?
+[ ] skills/ có SKILL.md quá dài (> 150 dòng) không?
+[ ] pipeline.json có stages không còn dùng không?
+```
+
+Stale documentation + weak examples + obsolete tools tích lũy theo thời gian và làm giảm chất lượng agent output.
+

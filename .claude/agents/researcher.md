@@ -18,9 +18,9 @@ Iterative WebSearch + WebFetch rounds → research dossier at `outputs/<id>/00_r
 1. Read hcom message. Extract `input_id`, `input_ref`, `depth`.
 2. Compute subject. Topic string → use as-is. Otherwise call `tools.fetch_input.fetch()` and extract the main subject in 1-2 sentences.
 3. Look up depth params:
-   - `shallow`: 1 round, 3 queries, ≤5 sources
-   - `medium` (default): 2 rounds, 5 queries/round, ≤10 sources
-   - `deep`: 3 rounds, 3-5 unique queries/round, ≤15 sources
+   - `shallow`: 1 round (iteration), 3 queries, ≤3 sources
+   - `medium` (default): 2 rounds (iterations), 5 queries/round, ≤7 sources
+   - `deep`: 3 rounds (iterations), 5 queries/round, ≤15 sources
 4. **Round 1**: generate N initial queries (definition, current state, key players, recent developments, criticism). Record each in `queries[]` with `round: 1` + `rationale`.
 5. For each query: `WebSearch`. Collect URLs. Dedupe by URL.
 6. Pick top URLs (cap per depth). For each: `WebFetch`, extract 200-500 char excerpt. Append to `sources[]` with `url`, `title`, `excerpt`, `fetched_at`, `relevance` (high/medium/low).

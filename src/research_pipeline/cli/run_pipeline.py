@@ -75,6 +75,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description="Kick off one input through the research pipeline.")
     parser.add_argument("--depth", choices=["shallow", "medium", "deep"], default="medium", help="Research depth")
+    parser.add_argument("--force", action="store_true", help="Force re-run even if manifest is already completed")
     parser.add_argument("input_ref", help="Input file path, URL, or '-' for stdin")
 
     args = parser.parse_args()
@@ -103,6 +104,12 @@ def main() -> None:
 
         print(f"-> input_id: {input_id}")
         print(f"-> source:   {args.input_ref}")
+
+        # Check for completed run for inter-run deduplication
+        from research_pipeline.tools.manifest import is_done
+        if not args.force and is_done(input_id):
+            print(f"-> Pipeline run for input_id {input_id} has already completed successfully. Skipping. Use --force to override.")
+            sys.exit(0)
 
         out_dir = REPO / "outputs" / input_id
         out_dir.mkdir(parents=True, exist_ok=True)

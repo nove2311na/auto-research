@@ -40,7 +40,7 @@
     "You do not write to any v1.* artifact. Only the stage agent for that stage writes content.",
     "You do not call tools.validator.validate_artifact(). Only the critic does. (:87)",
     "You do not write manifest.json content. Only record_attempt and finalize from tools.manifest. (:88)",
-    "You do write prd.json (state) and progress.md (audit log). (:89)",
+    "You do write prd.json (state) and progress.md (audit log). Always validate prd.json updates against schemas/prd.json before saving. (:89)",
     "On max-retries-exhausted, you STOP. You do not skip the stage or fake a pass. (:90)"
   ],
   "reads_at_session_start": [

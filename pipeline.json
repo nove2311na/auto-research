@@ -3,6 +3,12 @@
   "name": "research-pipeline",
   "description": "Content → 6-stage research pipeline → structured folder of versioned artifacts. Each stage produces an artifact + meta; the critic validates and triggers retry if needed.",
   "input_types": ["text", "file", "url", "pdf", "docx", "batch_dir"],
+  "budgets": {
+    "max_retries_per_stage": 3,
+    "max_total_tool_calls": 50,
+    "max_wall_time_minutes": 60,
+    "max_context_tokens": 180000
+  },
   "stages": [
     {
       "id": "00_research",
@@ -11,7 +17,8 @@
       "schema": "schemas/00_research.json",
       "output_format": "json",
       "max_retries": 3,
-      "max_options": 1
+      "max_options": 1,
+      "skill_triggers": ["web-search"]
     },
     {
       "id": "01_ingest",
@@ -29,7 +36,8 @@
       "schema": "schemas/02_extract.json",
       "output_format": "json",
       "max_retries": 3,
-      "max_options": 3
+      "max_options": 3,
+      "execution_mode": "parallel"
     },
     {
       "id": "03_analyze",
@@ -56,7 +64,8 @@
       "schema": "schemas/05_format.json",
       "output_format": "json+md",
       "max_retries": 3,
-      "max_options": 1
+      "max_options": 1,
+      "skill_triggers": ["markdown-report"]
     }
   ],
   "critic": {

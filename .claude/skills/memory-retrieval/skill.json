@@ -1,0 +1,20 @@
+{
+  "name": "memory-retrieval",
+  "owning_tool": "research_pipeline.tools.memory_retriever",
+  "description": "Retrieve matching past lessons based on keywords/topics from learnings.md and archive.",
+  "input_schema": {
+    "properties": {
+      "keyword": {
+        "type": "string",
+        "description": "Keyword or topic phrase to search for in learnings (case-insensitive)"
+      }
+    },
+    "required": ["keyword"]
+  },
+  "process": [
+    {"step": 1, "description": "Identify failure keyword or topic needing context from history."},
+    {"step": 2, "description": "Execute memory_retriever tool with the keyword."},
+    {"step": 3, "description": "Read match results from stdout or python return value."},
+    {"step": 4, "description": "Review lessons learned and adapt the pipeline strategy."}
+  ]
+}

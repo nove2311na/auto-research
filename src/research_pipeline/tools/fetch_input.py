@@ -49,8 +49,36 @@ def _read_text_file(p: Path) -> tuple[str, dict[str, Any]]:
 
 def _read_url(url: str) -> tuple[str, dict[str, Any]]:
     import requests
-    r = requests.get(url, timeout=30, headers={"User-Agent": "research-pipeline/1.0"})
-    r.raise_for_status()
+    import time
+    import json
+    from research_pipeline.paths import OUTPUTS
+    
+    # 1. Cache check
+    url_hash = hashlib.sha256(url.encode("utf-8")).hexdigest()[:12]
+    cache_dir = OUTPUTS / ".cache"
+    cache_file = cache_dir / f"{url_hash}.json"
+    if cache_file.exists():
+        try:
+            cached_data = json.loads(cache_file.read_text(encoding="utf-8"))
+            return cached_data["text"], cached_data["meta"]
+        except Exception:
+            pass
+
+    # 2. Retry with exponential backoff
+    r = None
+    for attempt in range(1, 4):
+        try:
+            r = requests.get(url, timeout=30, headers={"User-Agent": "research-pipeline/1.0"})
+            r.raise_for_status()
+            break
+        except Exception as e:
+            if attempt == 3:
+                raise e
+            time.sleep(2 ** attempt)
+
+    if r is None:
+        raise RuntimeError(f"Failed to fetch url: {url}")
+
     ctype = r.headers.get("content-type", "")
     body = r.text
     if "html" in ctype.lower():
@@ -73,6 +101,14 @@ def _read_url(url: str) -> tuple[str, dict[str, Any]]:
     }
     if title:
         meta["title"] = title
+
+    # 3. Write cache
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_file.write_text(json.dumps({"text": text, "meta": meta}, indent=2, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
+
     return text, meta
 
 
@@ -112,6 +148,64 @@ def _read_docx(p: Path) -> tuple[str, dict[str, Any]]:
         "title": (doc.core_properties.title or "") if doc.core_properties else "",
     }
     return text, meta
+
+
+def chunk_and_filter_text(text: str, topic: str = "", max_chars: int = 1_000_000) -> str:
+    """If text exceeds max_chars, split into chunks and filter by keyword relevance to the topic."""
+    if len(text) <= max_chars:
+        return text
+
+    # Split text into paragraphs or semantic segments of approx 40K chars
+    segment_size = 40_000
+    paragraphs = text.split("\n\n")
+    segments: list[str] = []
+    current_segment: list[str] = []
+    current_len = 0
+    for p in paragraphs:
+        p_len = len(p)
+        if current_len + p_len > segment_size:
+            if current_segment:
+                segments.append("\n\n".join(current_segment))
+            current_segment = [p]
+            current_len = p_len
+        else:
+            current_segment.append(p)
+            current_len += p_len + 2
+    if current_segment:
+        segments.append("\n\n".join(current_segment))
+
+    if not segments:
+        return text[:max_chars]
+
+    # Calculate relevance scores for each segment
+    keywords = [w.lower() for w in re.findall(r"\b\w{4,}\b", topic)] if topic else []
+    
+    scored_segments = []
+    for idx, seg in enumerate(segments):
+        seg_lower = seg.lower()
+        score = 0
+        for kw in keywords:
+            score += seg_lower.count(kw)
+        scored_segments.append((score, idx, seg))
+
+    # Sort segments by relevance score (descending), then original order
+    scored_segments.sort(key=lambda x: (-x[0], x[1]))
+
+    # Select top segments that fit within max_chars
+    selected_segments = []
+    total_len = 0
+    for score, idx, seg in scored_segments:
+        if total_len + len(seg) + 2 > max_chars:
+            if not selected_segments:
+                selected_segments.append((idx, seg[:max_chars]))
+            break
+        selected_segments.append((idx, seg))
+        total_len += len(seg) + 2
+
+    # Re-order selected segments back to their original flow order
+    selected_segments.sort(key=lambda x: x[0])
+    
+    return "\n\n... [Segment boundary] ...\n\n".join(seg for idx, seg in selected_segments)
 
 
 def fetch(source: str | Path) -> tuple[str, dict[str, Any]]:

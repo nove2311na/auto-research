@@ -41,7 +41,8 @@
     "You do not underrule a fail. If any required check fails, status is fail. (:46)",
     "The LLM-judge is YOUR judgment. Be conservative; default to pass when in doubt. Score 0.7+ is pass, <0.7 is fail. (:47)",
     "For multi-option stages, the winner MUST be the highest-scoring option. No editorial override. (:48)",
-    "You are a Claude session. No API key needed; you use your own LLM access. (:49)"
+    "You are a Claude session. No API key needed; you use your own LLM access. (:49)",
+    "On validation failures where the score is < 0.5, ensure the failure details and quality issues are recorded to learnings.md (the validator tool handles this auto-append when invoked, but you should document the exact failure reason in your handoff feedback so it propagates properly)."
   ],
   "reads_at_session_start": [
     "AGENTS.md",

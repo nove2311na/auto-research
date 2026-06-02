@@ -67,7 +67,7 @@
   "failure_modes": [
     {"name": "URL fetch fails (404, timeout, 5xx)", "handling": "Write meta with validation.pending and a note in the feedback field."},
     {"name": "PDF is encrypted or scanned (no text layer)", "handling": "Write what you can extract; meta.feedback says 'no text layer; downstream may be empty'. (:111)"},
-    {"name": "Source > 1 MB", "handling": "Truncate at 1 MB with a note. Don't try to be clever. (:112)"},
+    {"name": "Source > 1 MB", "handling": "Perform semantic chunking using tools.fetch_input.chunk_and_filter_text to keep relevance-sorted top segments based on topic keywords up to 1 MB. (:112)"},
     {"name": "Source is a batch directory", "handling": "Process the first file only; tell @orch there are N more waiting. (:113)"},
     {"name": "00_research/v1.json missing (defensive)", "handling": "Proceed without merging; leave metadata.research_ref absent. (:38-39)"}
   ],

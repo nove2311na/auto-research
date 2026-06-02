@@ -25,9 +25,9 @@ description: >
 ### Depth parameters
 | Depth | Rounds | Queries/round | Source cap |
 |---|---|---|---|
-| `shallow` | 1 | 3 | ≤5 |
-| `medium` (default) | 2 | 5 | ≤10 |
-| `deep` | 3 | 3-5 | ≤15 |
+| `shallow` | 1 | 3 | ≤3 |
+| `medium` (default) | 2 | 5 | ≤7 |
+| `deep` | 3 | 5 | ≤15 |
 
 ## Process (see `skill.json#process` for the structured form)
 

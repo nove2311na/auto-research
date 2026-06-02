@@ -218,6 +218,8 @@ def build_meta(
     producer: str,
     parent_ref: str = "",
     schema_version: str = "1.0",
+    self_rebuttal_passed: bool | None = None,
+    self_rebuttal_notes: str | None = None,
 ) -> dict[str, Any]:
     """Build a default metadata structure with validation status set to pending.
 
@@ -228,11 +230,13 @@ def build_meta(
         producer: Identifier of the agent that produced the artifact.
         parent_ref: Reference to the parent artifact or input.
         schema_version: Metadata schema version string.
+        self_rebuttal_passed: Whether the agent passed its internal self-rebuttal.
+        self_rebuttal_notes: Notes or rationale from the self-rebuttal review.
 
     Returns:
         dict[str, Any]: Built metadata dictionary.
     """
-    return {
+    res = {
         "version": version,
         "stage": stage,
         "input_id": input_id,
@@ -249,6 +253,11 @@ def build_meta(
             "checks": {},
         },
     }
+    if self_rebuttal_passed is not None:
+        res["self_rebuttal_passed"] = self_rebuttal_passed
+    if self_rebuttal_notes is not None:
+        res["self_rebuttal_notes"] = self_rebuttal_notes
+    return res
 
 
 def write_meta(
