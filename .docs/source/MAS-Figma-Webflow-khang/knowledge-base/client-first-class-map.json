@@ -1,0 +1,221 @@
+{
+  "version": "0.3.0",
+  "source_notes": [
+    "knowledge-base/client-first-theory.md",
+    "agentic/specs/figma-to-client-first-mapping.md"
+  ],
+  "principles": {
+    "unit_system": "rem",
+    "custom_class_delimiter": "_",
+    "utility_class_delimiter": "-",
+    "combo_prefix": "is-",
+    "webflow_write_rule": "apply only after approved blueprint"
+  },
+  "class_groups": {
+    "structure": [
+      {
+        "class": "page-wrapper",
+        "applies_to": "outer page wrapper",
+        "figma_signals": ["top-level page frame", "full page composition"],
+        "webflow_properties": {"width": "100%"},
+        "class_strategy": "required_global"
+      },
+      {
+        "class": "main-wrapper",
+        "applies_to": "main content wrapper",
+        "figma_signals": ["page content excluding nav and footer"],
+        "webflow_properties": {"html_tag": "main"},
+        "class_strategy": "required_global"
+      },
+      {
+        "class_pattern": "section_[section-name]",
+        "applies_to": "semantic page section",
+        "figma_signals": ["large vertical frame", "named page section", "content band"],
+        "webflow_properties": {"position": "relative", "overflow": "visible"},
+        "class_strategy": "custom_section"
+      },
+      {
+        "class": "padding-global",
+        "applies_to": "horizontal site gutter wrapper",
+        "figma_signals": ["consistent left and right page gutter", "desktop side margin"],
+        "webflow_properties": {"padding-left": "site variable", "padding-right": "site variable"},
+        "class_strategy": "required_global"
+      },
+      {
+        "class_pattern": "container-[small|medium|large]",
+        "applies_to": "content max-width wrapper",
+        "figma_signals": ["centered content width", "max width frame", "layout grid content column"],
+        "webflow_properties": {"max-width": "mapped content width", "margin-left": "auto", "margin-right": "auto"},
+        "class_strategy": "utility_selection"
+      },
+      {
+        "class_pattern": "padding-section-[small|medium|large]",
+        "applies_to": "top and bottom section rhythm",
+        "figma_signals": ["section vertical padding", "top and bottom spacing around section content"],
+        "webflow_properties": {"padding-top": "spacing token", "padding-bottom": "spacing token"},
+        "class_strategy": "utility_selection"
+      }
+    ],
+    "typography": [
+      {
+        "class_pattern": "heading-style-h[1-6]",
+        "applies_to": "visual heading size when semantic tag differs",
+        "figma_signals": ["text style name contains heading", "large font size", "semantic mismatch"],
+        "webflow_properties": {"font-size": "type token", "line-height": "type token", "font-weight": "type token"},
+        "class_strategy": "utility_selection"
+      },
+      {
+        "class_pattern": "text-size-[tiny|small|medium|large|huge]",
+        "applies_to": "body and supporting text size",
+        "figma_signals": ["fontSize", "text style size", "body text token"],
+        "webflow_properties": {"font-size": "rem token", "line-height": "unitless or rem token"},
+        "class_strategy": "utility_selection"
+      },
+      {
+        "class_pattern": "text-weight-[normal|medium|semibold|bold]",
+        "applies_to": "font weight utility",
+        "figma_signals": ["fontWeight", "font style contains Medium, Semibold, Bold"],
+        "webflow_properties": {"font-weight": "mapped weight"},
+        "class_strategy": "utility_selection"
+      },
+      {
+        "class_pattern": "text-align-[left|center|right]",
+        "applies_to": "text alignment utility",
+        "figma_signals": ["textAlignHorizontal"],
+        "webflow_properties": {"text-align": "mapped alignment"},
+        "class_strategy": "utility_selection"
+      }
+    ],
+    "spacing": [
+      {
+        "class_pattern": "margin-[top|bottom|left|right]",
+        "applies_to": "spacing direction wrapper",
+        "figma_signals": ["vertical gap between sibling elements", "explicit outside spacing"],
+        "webflow_properties": {"margin-direction": "direction class only"},
+        "class_strategy": "utility_pair"
+      },
+      {
+        "class_pattern": "margin-[tiny|small|medium|large|huge]",
+        "applies_to": "spacing size wrapper",
+        "figma_signals": ["gap value", "distance between siblings"],
+        "webflow_properties": {"margin-size": "rem token"},
+        "class_strategy": "utility_pair"
+      },
+      {
+        "class_pattern": "padding-[top|bottom|left|right]",
+        "applies_to": "local padding direction wrapper",
+        "figma_signals": ["component padding side", "auto-layout padding side"],
+        "webflow_properties": {"padding-direction": "direction class only"},
+        "class_strategy": "utility_pair"
+      },
+      {
+        "class_pattern": "padding-[tiny|small|medium|large|huge]",
+        "applies_to": "local padding size wrapper",
+        "figma_signals": ["auto-layout padding value"],
+        "webflow_properties": {"padding-size": "rem token"},
+        "class_strategy": "utility_pair"
+      }
+    ],
+    "color": [
+      {
+        "class_pattern": "text-color-[token]",
+        "applies_to": "text color utility",
+        "figma_signals": ["fills on text node", "text color style"],
+        "webflow_properties": {"color": "color variable"},
+        "class_strategy": "variable_backed_utility"
+      },
+      {
+        "class_pattern": "background-color-[token]",
+        "applies_to": "background color utility",
+        "figma_signals": ["solid fill on frame", "section background token"],
+        "webflow_properties": {"background-color": "color variable"},
+        "class_strategy": "variable_backed_utility"
+      },
+      {
+        "class_pattern": "border-color-[token]",
+        "applies_to": "border color utility",
+        "figma_signals": ["stroke color", "divider color", "card border"],
+        "webflow_properties": {"border-color": "color variable"},
+        "class_strategy": "variable_backed_utility"
+      }
+    ],
+    "layout": [
+      {
+        "class_pattern": "[component]_[element]",
+        "applies_to": "component-specific layout, grid, or flex behavior",
+        "figma_signals": ["auto-layout direction", "layout grid", "responsive child arrangement"],
+        "webflow_properties": {"display": "flex or grid", "gap": "rem token", "alignment": "mapped auto-layout"},
+        "class_strategy": "custom_component"
+      },
+      {
+        "class_pattern": "[component]_[element]-wrapper",
+        "applies_to": "image, text, button, card, or media wrapper",
+        "figma_signals": ["nested frame", "mask group", "media container"],
+        "webflow_properties": {"position": "relative", "overflow": "as needed"},
+        "class_strategy": "custom_component"
+      }
+    ],
+    "state": [
+      {
+        "class_pattern": "is-[state]",
+        "applies_to": "combo class variation",
+        "figma_signals": ["variant property", "component state", "selected or active design"],
+        "webflow_properties": {"variation": "combo class only"},
+        "class_strategy": "combo_class"
+      }
+    ]
+  },
+  "figma_property_map": [
+    {
+      "figma_property": "frame role",
+      "signals": ["top-level frame", "page shell"],
+      "client_first_decision": "create page-wrapper and main-wrapper before section classes"
+    },
+    {
+      "figma_property": "section frame name",
+      "signals": ["Hero", "Features", "Pricing", "Footer", "CTA"],
+      "client_first_decision": "create section_[normalized-name] and component prefix from the same normalized name"
+    },
+    {
+      "figma_property": "autoLayout.paddingLeft and autoLayout.paddingRight",
+      "signals": ["same side gutter across sections"],
+      "client_first_decision": "use padding-global for site gutter; use padding utilities only for local component padding"
+    },
+    {
+      "figma_property": "frame width or layout grid column width",
+      "signals": ["centered max width"],
+      "client_first_decision": "choose container-small, container-medium, or container-large"
+    },
+    {
+      "figma_property": "vertical section padding",
+      "signals": ["top and bottom spacing around section content"],
+      "client_first_decision": "choose padding-section-small, padding-section-medium, or padding-section-large"
+    },
+    {
+      "figma_property": "fontSize and text style",
+      "signals": ["heading or body style"],
+      "client_first_decision": "choose heading-style-h* for visual heading or text-size-* for body text"
+    },
+    {
+      "figma_property": "fontWeight",
+      "signals": ["Regular", "Medium", "Semibold", "Bold"],
+      "client_first_decision": "choose text-weight-* utility when the weight is reusable; otherwise keep it in the component class"
+    },
+    {
+      "figma_property": "fills",
+      "signals": ["text fill", "frame fill", "semantic color style"],
+      "client_first_decision": "map to text-color-[token] or background-color-[token] backed by Webflow variables"
+    },
+    {
+      "figma_property": "strokes",
+      "signals": ["divider", "card border", "outline"],
+      "client_first_decision": "map to border-color-[token] and component border properties"
+    },
+    {
+      "figma_property": "component variant",
+      "signals": ["active", "secondary", "large", "small", "disabled"],
+      "client_first_decision": "apply base component class plus is-[state] combo class"
+    }
+  ]
+}
+

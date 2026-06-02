@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "defaultMode": "ask",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "deny": [
+      "Read(**/.env*)",
+      "Read(**/*secret*)",
+      "Bash(rm -rf:*)",
+      "Bash(del /s:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": []
+  }
+}
+

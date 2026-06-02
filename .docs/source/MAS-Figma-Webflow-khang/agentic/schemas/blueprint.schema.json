@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MAS Client-First Blueprint",
+  "type": "object",
+  "required": ["page", "source", "sections", "client_first", "approval_status"],
+  "properties": {
+    "page": {"type": "string", "minLength": 1},
+    "source": {"type": "object"},
+    "sections": {"type": "array", "items": {"type": "object"}},
+    "client_first": {"type": "object"},
+    "approval_status": {"type": "string", "enum": ["draft", "approved", "rejected", "needs_revision"]}
+  },
+  "additionalProperties": true
+}
+

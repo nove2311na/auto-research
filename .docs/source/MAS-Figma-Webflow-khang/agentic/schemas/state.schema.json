@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MAS State Log",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["timestamp", "agent", "phase", "type", "message"],
+    "properties": {
+      "timestamp": {"type": "string"},
+      "agent": {"type": "string"},
+      "phase": {"type": "string"},
+      "type": {"type": "string"},
+      "message": {"type": "string"},
+      "reason": {"type": "string"},
+      "action": {"type": "string"},
+      "observation": {"type": "string"},
+      "next_decision": {"type": "string"},
+      "artifact": {"type": "string"},
+      "resolution": {"type": "string"}
+    },
+    "additionalProperties": true
+  }
+}
+

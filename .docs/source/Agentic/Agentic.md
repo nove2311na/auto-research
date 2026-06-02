@@ -97,3 +97,8 @@ Worker
 Worker
 ➡️ Kết quả được gộp
 🔄 Lặp cho đến khi xong
+
+
+![alt text](image.png)
+
+![alt text](image-1.png)
