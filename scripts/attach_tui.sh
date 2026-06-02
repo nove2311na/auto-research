@@ -1,6 +1,3 @@
 #!/usr/bin/env bash
-# attach_tui.sh — open the hcom TUI dashboard.
-set -euo pipefail
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
-export HCOM_DIR="$REPO/.hcom"
-exec hcom
+# attach_tui.sh — wrapper that delegates to attach_tui.py
+exec python3 "$(dirname "$0")/attach_tui.py" "$@"

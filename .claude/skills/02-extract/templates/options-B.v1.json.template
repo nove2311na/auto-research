@@ -1,0 +1,8 @@
+{
+  "_approach": "B: fact-first",
+  "entities": [],
+  "facts": [
+    {"claim": "<atomic claim, 1 sentence>", "evidence_quote": "<short verbatim quote from source>", "confidence": "high|medium|low"}
+  ],
+  "quotes": []
+}

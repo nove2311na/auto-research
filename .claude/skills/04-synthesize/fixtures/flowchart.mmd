@@ -1,0 +1,7 @@
+flowchart TD
+    A[Physical qubit] -->|error ~1e-3| B[Syndrome measurement]
+    B --> C{Decoder}
+    C -->|below threshold| D[Logical qubit preserved]
+    C -->|above threshold| E[Logical error]
+    style D fill:#90EE90
+    style E fill:#FFB6C1

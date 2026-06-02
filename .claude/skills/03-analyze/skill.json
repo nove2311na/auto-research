@@ -1,0 +1,103 @@
+{
+  "stage_id": "03_analyze",
+  "owning_agent": "analyzer",
+  "schema_ref": "schemas/03_analyze.json",
+  "output_format": "json",
+  "max_options": 1,
+  "max_retries": 3,
+  "antonio_gulli_patterns": ["Ch. 5 Tool Use", "Ch. 12 Exception Handling"],
+  "claude_code_book_chapters": ["Ch. 8 Prompt Craft"],
+  "helpers": {
+    "fixtures":   ".claude/skills/03-analyze/fixtures/",
+    "templates":  ".claude/skills/03-analyze/templates/",
+    "scripts":    ".claude/skills/03-analyze/scripts/",
+    "examples":   ".claude/skills/03-analyze/examples/",
+    "rubric":     ".claude/skills/03-analyze/rubric.md",
+    "eval_cases": ".claude/skills/03-analyze/eval-cases.md"
+  },
+  "input_schema": {
+    "fields": [
+      {"name": "input_id", "type": "string (8 hex)", "required": true, "source": "hcom message from @orch"},
+      {"name": "02_extract/v1.json", "type": "file path", "required": true, "source": "upstream artifact (the critic's winner)"}
+    ],
+    "hcom_message_example": "hcom send --name <sender> \"@research-pipeline-claude-4 analyze: <input_id>; input=outputs/<input_id>/02_extract/v1.json; schema=schemas/03_analyze.json; then report to @research-pipeline-claude-6\""
+  },
+  "process": [
+    {"step": 1, "type": "llm", "description": "Read 02_extract/v1.json end-to-end."},
+    {"step": 2, "type": "llm", "description": "Identify themes (2-6 clusters of facts; each has name, description, supporting_facts[])."},
+    {"step": 3, "type": "llm", "description": "Identify gaps (1-5 things the source does NOT cover; each has description + what_would_fill_it)."},
+    {"step": 4, "type": "llm", "description": "Identify contradictions (0-3 places where two facts disagree; each has claim_a, claim_b, explanation)."},
+    {"step": 5, "type": "deterministic", "description": "Write v1.json to outputs/<id>/03_analyze/v1.json."},
+    {"step": 6, "type": "deterministic", "description": "Write v1.meta.json with validation: pending."},
+    {"step": 7, "type": "deterministic", "description": "Ping @critic with validate: <input_id> 03_analyze."}
+  ],
+  "output_schema": {
+    "required_fields": ["themes", "gaps", "contradictions"],
+    "template": {
+      "themes": [
+        {"name": "<short name>", "description": "<one line>", "supporting_facts": ["<claim text 1>"]}
+      ],
+      "gaps": [
+        {"description": "<specific gap>", "what_would_fill_it": "<concrete research/data needed>"}
+      ],
+      "contradictions": [
+        {"claim_a": "<claim A verbatim from 02_extract>", "claim_b": "<claim B verbatim from 02_extract>", "explanation": "<why these contradict>"}
+      ]
+    }
+  },
+  "examples": [
+    {
+      "source": "scripts/smoke_v2.py:89-105",
+      "lifted_from": "real example for QEC topic",
+      "artifact": {
+        "themes": [
+          {"name": "surface code dominance", "description": "Surface codes are the de facto industrial QEC", "supporting_facts": ["Surface codes have ~1% threshold"]},
+          {"name": "threshold achievement", "description": "Multiple platforms crossed below-threshold operation", "supporting_facts": ["1000+ logical qubits demonstrated in 2026"]}
+        ],
+        "gaps": [
+          {"description": "Long-term stability of logical qubits", "what_would_fill_it": "Multi-week coherence measurements on hardware"}
+        ],
+        "contradictions": [
+          {"claim_a": "Academic literature claims overhead reduction", "claim_b": "Industrial practice still uses 1000:1 physical-to-logical ratio", "explanation": "Decoding overhead and syndrome measurement costs may offset theoretical savings"}
+        ]
+      }
+    }
+  ],
+  "self_check": [
+    {"step": 1, "check": "themes[] has 2-6 entries (per self_check step 1 of this spec)"},
+    {"step": 2, "check": "Each theme's supporting_facts[] references at least one fact from 02_extract.facts[] (use the fact's claim text verbatim)"},
+    {"step": 3, "check": "No invented themes (must be supported by facts); no invented gaps"},
+    {"step": 4, "check": "gaps[] has 1-5 entries (per :19)"},
+    {"step": 5, "check": "Each gap's description is specific (not 'more detail would be nice')"},
+    {"step": 6, "check": "contradictions[] has 0-3 entries (per :20)"},
+    {"step": 7, "check": "Each claim_a/claim_b actually contradict; 'two facts about the same thing from different angles' is NOT a contradiction"},
+    {"step": 8, "check": "Min lengths: every description, what_would_fill_it, name, claim_a, claim_b is non-empty (per schemas/03_analyze.json minLength: 1)"},
+    {"step": 9, "check": "v1.meta.json has producer: 'analyzer', validation.status: 'pending'"},
+    {"step": 10, "check": "@critic pinged with validate: <input_id> 03_analyze"}
+  ],
+  "validation": {
+    "check_refs": ["validation/02-post-execution-completeness.md", "validation/03-llm-judge.md"],
+    "threshold": 0.7,
+    "common_failures": [
+      {"failure": "Theme's supporting_facts is empty (no fact reference)", "fix": "Re-ground: copy the relevant claim text from 02_extract.facts[]"},
+      {"failure": "Gap is too vague", "fix": "Make it specific; replace 'more detail would be nice' with 'No mention of X even though Y relies on it'"},
+      {"failure": "Contradiction is not actually a contradiction (just different angles)", "fix": "Remove it"},
+      {"failure": "LLM-judge scores < 0.7 (themes not really supported)", "fix": "Re-do with stronger fact references"}
+    ]
+  },
+  "failure_modes": [
+    {"name": "Empty 02_extract", "handling": "Output {themes: [], gaps: [<whole-topic-is-empty>], contradictions: []}. Critic will fail it for being empty; orchestrator will halt."},
+    {"name": "Source is too short for themes", "handling": "1 theme is OK; don't pad to 6."}
+  ],
+  "refactor_delta": {
+    "scope": "Small",
+    "current_state": "themes/gaps/contradictions identification is in this spec's Process section.",
+    "target_state": "All process detail stays in this spec; the analyzer's JSON contract is the only agent truth.",
+    "concrete_steps": [
+      "Keep the 'Identify' sub-steps in this spec's Process section (already moved).",
+      "Add minItems: 2 and maxItems: 6 to schemas/03_analyze.json#themes (currently 0).",
+      "Add minItems: 1 and maxItems: 5 to schemas/03_analyze.json#gaps.",
+      "Add maxItems: 3 to schemas/03_analyze.json#contradictions."
+    ]
+  }
+}

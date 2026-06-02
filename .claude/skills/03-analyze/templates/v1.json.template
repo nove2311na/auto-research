@@ -1,0 +1,15 @@
+{
+  "themes": [
+    {
+      "name": "<short name>",
+      "description": "<one line>",
+      "supporting_facts": ["<claim text 1 from 02_extract.facts[]>"]
+    }
+  ],
+  "gaps": [
+    {"description": "<specific gap>", "what_would_fill_it": "<concrete research/data needed>"}
+  ],
+  "contradictions": [
+    {"claim_a": "<verbatim from 02_extract>", "claim_b": "<verbatim from 02_extract>", "explanation": "<why they contradict>"}
+  ]
+}

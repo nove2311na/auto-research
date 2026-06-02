@@ -1,0 +1,43 @@
+{
+  "title": "Quantum Error Correction 2026",
+  "summary": "Quantum error correction reached industrial maturity in 2026, with surface codes dominating the modality and at least three platforms demonstrating below-threshold operation.",
+  "entities": [
+    {"name": "Google", "type": "org", "mentions": 4},
+    {"name": "IBM", "type": "org", "mentions": 3},
+    {"name": "Surface code", "type": "concept", "mentions": 5}
+  ],
+  "facts": [
+    {"claim": "Surface codes have ~1% threshold", "source": "00_research/v1.json:source[1]"},
+    {"claim": "1000+ logical qubits demonstrated in 2026", "source": "00_research/v1.json:source[2]"}
+  ],
+  "analysis": {
+    "themes": [
+      {"name": "surface code dominance", "description": "Surface codes are the de facto industrial QEC"},
+      {"name": "threshold achievement", "description": "Multiple platforms crossed below-threshold operation"},
+      {"name": "overhead reduction", "description": "Physical-to-logical ratio target has dropped 10x"}
+    ],
+    "gaps": [
+      {"description": "Long-term stability of logical qubits"}
+    ],
+    "contradictions": [
+      {"description": "Decoding overhead and syndrome measurement costs may offset theoretical savings"}
+    ]
+  },
+  "insights": [
+    "Surface codes are the de facto QEC modality, with logical qubit counts crossing 1000 in late 2025",
+    "Multiple platforms (Google, IBM, Microsoft) demonstrated below-threshold operation in 2025-2026",
+    "The 1M:1 physical-to-logical ratio target is 10x lower than earlier estimates"
+  ],
+  "references": [
+    "01_ingest source_ref: ../../_shared/fixtures/qec-input.txt",
+    "00_research/v1.json"
+  ],
+  "diagrams": [
+    {"type": "flowchart", "title": "Surface code QEC loop", "code": "flowchart TD\n    A[Physical qubit] -->|error ~1e-3| B[Syndrome measurement]\n    B --> C{Decoder}\n    C -->|below threshold| D[Logical qubit preserved]\n    C -->|above threshold| E[Logical error]"},
+    {"type": "mindmap", "title": "QEC 2026 landscape", "code": "mindmap\n  root((QEC 2026))\n    Surface codes\n      Threshold ~1%\n      1000+ logical qubits"}
+  ],
+  "theses": [
+    {"statement": "Surface codes will remain the dominant industrial QEC modality through 2028", "confidence": "high"},
+    {"statement": "The 1M:1 physical-to-logical ratio is achievable by 2030", "confidence": "medium"}
+  ]
+}

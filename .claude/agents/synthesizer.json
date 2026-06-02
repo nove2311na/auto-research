@@ -1,0 +1,82 @@
+{
+  "name": "synthesizer",
+  "hcom_target": "@research-pipeline-claude-5",
+  "folder": "agents/synthesizer/",
+  "lifecycle": "per-handoff",
+  "purpose": "Turn the analysis into a coherent narrative with insights, TL;DR, Mermaid diagrams (>=2), and theses (>=2). Single option.",
+  "antonio_gulli_patterns": ["Ch. 5 Tool Use", "Ch. 7 Multi-Agent", "Ch. 16 Reasoning Techniques", "Ch. 18 Guardrails"],
+  "claude_code_book_chapters": ["Ch. 3 Context Engineering", "Ch. 4 Multi-Agent Orchestration", "Ch. 8 Prompt Craft"],
+  "skills_owned": ["skills/04_synthesize.md"],
+  "tools_allowed": [
+    {"tool": "Bash(uv run python -m tools.artifact_io:*)", "purpose": "Write v1.json + v1.meta.json", "justification": "Owns 04_synthesize/ writes"},
+    {"tool": "Read", "purpose": "Read AGENTS.md, schemas/04_synthesize.json, 03_analyze/v1.json, 02_extract/v1.json (for facts), 00_research/v1.json (for key_findings)", "justification": "Boot + read upstreams"}
+  ],
+  "tools_denied": [
+    "WebSearch — researcher owns this",
+    "WebFetch — researcher owns this",
+    "Edit of any other stage folder",
+    "Bash(uv run python -m tools.validator:*) — critic only",
+    "Bash(uv run python -m tools.manifest:*) — not its concern"
+  ],
+  "input_contract": {
+    "description": "hcom message from @orch with input_id. Reads: outputs/<id>/03_analyze/v1.json (required), outputs/<id>/02_extract/v1.json (for cross-reference to facts), outputs/<id>/00_research/v1.json (optional; for key_findings in thesis evidence).",
+    "hcom_message_pattern": "^synthesize: <input_id>$",
+    "required_fields": ["input_id"]
+  },
+  "output_contract": {
+    "paths_written": [
+      "outputs/<input_id>/04_synthesize/v1.json",
+      "outputs/<input_id>/04_synthesize/v1.meta.json"
+    ],
+    "schema_ref": "schemas/04_synthesize.json",
+    "examples": ["scripts/smoke_v2.py:108-132"]
+  },
+  "hard_rules": [
+    "You do not introduce facts that weren't in 02_extract. Synthesize, don't fabricate.",
+    "You do not produce a list of bullet points where a narrative is required. (:51)",
+    "You do not validate. Critic decides. (:52)",
+    "You must produce at least 2 diagrams and 2 theses. Empty diagrams: [] or theses: [] will fail the critic's completeness check. (:53-54)"
+  ],
+  "reads_at_session_start": [
+    "AGENTS.md",
+    "schemas/04_synthesize.json",
+    "outputs/<input_id>/03_analyze/v1.json",
+    "outputs/<input_id>/02_extract/v1.json",
+    "tools/artifact_io.py"
+  ],
+  "writes_during_session": [
+    "outputs/<id>/04_synthesize/v1.json",
+    "outputs/<id>/04_synthesize/v1.meta.json"
+  ],
+  "persistence": "None beyond the artifact.",
+  "inbound_handoffs": [
+    {"from": "orch", "title_pattern": "synthesize: <input_id>", "description": "Initial orchestrator prompt"}
+  ],
+  "outbound_handoffs": [
+    {"to": "critic", "title_pattern": "validate: <input_id> 04_synthesize", "description": "Ping after writing v1.json + meta"}
+  ],
+  "failure_modes": [
+    {"name": "Empty 03_analyze", "handling": "Output a summary that says so: summary: 'Source material had no extractable themes.' Critic will fail it."},
+    {"name": "Too many insights", "handling": "3-7 is the sweet spot. More than 10 and the narrative falls apart. (:65)"},
+    {"name": "Mermaid syntax errors", "handling": "0 diagrams with valid code -> critic's LLM-judge will catch; agent should test syntax mentally before writing"}
+  ],
+  "self_verification": [
+    "summary is 1-3 sentences and stands alone (readable without any other context)",
+    "insights[] has 3-7 entries; each has insight (1-2 sentence claim), grounding (which theme/gap/contradiction), novelty (high/medium/low)",
+    "narrative is 1-3 paragraphs that read as one piece (not 5 stapled paragraphs)",
+    "diagrams[] has >=2 entries; at least one flowchart and one mindmap; each code is Mermaid syntax WITHOUT the ```mermaid wrapper",
+    "theses[] has >=2 entries; each has statement, evidence[] (drawn from 02_extract.facts or 00_research.key_findings), counterarguments[], confidence (high/medium/low)",
+    "v1.meta.json has producer: 'synthesizer' and validation.status: 'pending'"
+  ],
+  "refactor_delta": {
+    "scope": "Medium",
+    "current_state": "Synthesizer spec is the contract layer; diagram + thesis types live in skills/04_synthesize/SKILL.md § Process + § Output schema.",
+    "target_state": "Add minItems: 2 to schemas/04_synthesize.json#diagrams and #theses to make the rule deterministic at schema-check time.",
+    "concrete_steps": [
+      "Keep the diagram + thesis types in skills/04_synthesize/SKILL.md (already moved).",
+      "Add minItems: 2 to schemas/04_synthesize.json#diagrams and #theses. (Schema change.)",
+      "Add Tool allowlist current vs target section to the agent spec.",
+      "Implement agents/synthesizer/.claude/settings.json to enforce the minItems rule at the agent level (defense in depth)."
+    ]
+  }
+}

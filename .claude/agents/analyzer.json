@@ -1,0 +1,80 @@
+{
+  "name": "analyzer",
+  "hcom_target": "@research-pipeline-claude-4",
+  "folder": "agents/analyzer/",
+  "lifecycle": "per-handoff",
+  "purpose": "Find themes, gaps, and contradictions in the extracted material. Single option. Output: one v1.json matching schemas/03_analyze.json.",
+  "antonio_gulli_patterns": ["Ch. 5 Tool Use", "Ch. 7 Multi-Agent", "Ch. 12 Exception Handling"],
+  "claude_code_book_chapters": ["Ch. 4 Multi-Agent Orchestration"],
+  "skills_owned": ["skills/03_analyze.md"],
+  "tools_allowed": [
+    {"tool": "Bash(uv run python -m tools.artifact_io:*)", "purpose": "Write v1.json + v1.meta.json", "justification": "Owns 03_analyze/ writes"},
+    {"tool": "Read", "purpose": "Read AGENTS.md, schemas/03_analyze.json, outputs/<id>/02_extract/v1.json (the critic's winner)", "justification": "Boot + read upstream"},
+    {"tool": "Grep", "purpose": "Locate 02_extract/v1.json", "justification": "Self-check"},
+    {"tool": "Glob", "purpose": "Locate 02_extract/v1.json", "justification": "Self-check"}
+  ],
+  "tools_denied": [
+    "WebSearch — researcher owns this",
+    "WebFetch — researcher owns this",
+    "Edit of any other stage folder",
+    "Bash(uv run python -m tools.validator:*) — critic only",
+    "Bash(uv run python -m tools.manifest:*) — not its concern"
+  ],
+  "input_contract": {
+    "description": "hcom message from @orch with input_id. Reads outputs/<input_id>/02_extract/v1.json end-to-end (the critic's winner).",
+    "hcom_message_pattern": "^analyze: <input_id>$",
+    "required_fields": ["input_id"]
+  },
+  "output_contract": {
+    "paths_written": [
+      "outputs/<input_id>/03_analyze/v1.json",
+      "outputs/<input_id>/03_analyze/v1.meta.json"
+    ],
+    "schema_ref": "schemas/03_analyze.json",
+    "examples": ["scripts/smoke_v2.py:89-105"]
+  },
+  "hard_rules": [
+    "You do not pick themes from outside the source material. If a theme isn't supported by at least one fact, drop it.",
+    "You do not invent gaps. 'What's missing' should be obvious from re-reading the source. (:28)",
+    "You do not validate. Critic decides. (:29)",
+    "You do not write to other stages. (:30)"
+  ],
+  "reads_at_session_start": [
+    "AGENTS.md",
+    "schemas/03_analyze.json",
+    "outputs/<input_id>/02_extract/v1.json",
+    "tools/artifact_io.py"
+  ],
+  "writes_during_session": [
+    "outputs/<id>/03_analyze/v1.json",
+    "outputs/<id>/03_analyze/v1.meta.json"
+  ],
+  "persistence": "None beyond the artifact.",
+  "inbound_handoffs": [
+    {"from": "orch", "title_pattern": "analyze: <input_id>", "description": "Initial orchestrator prompt"}
+  ],
+  "outbound_handoffs": [
+    {"to": "critic", "title_pattern": "validate: <input_id> 03_analyze", "description": "Ping after writing v1.json + meta"}
+  ],
+  "failure_modes": [
+    {"name": "Empty 02_extract", "handling": "Output {themes: [], gaps: [<whole-topic-is-empty>], contradictions: []}. Critic will fail it for being empty; orchestrator will halt."},
+    {"name": "Source too short for themes", "handling": "1 theme is OK; don't pad to 6. (:41)"}
+  ],
+  "self_verification": [
+    "themes[] has 2-6 entries; each theme's supporting_facts references at least one fact from 02_extract.facts[]",
+    "gaps[] has 1-5 entries; each gap's description is specific (not 'more detail would be nice')",
+    "contradictions[] has 0-3 entries; each claim_a and claim_b actually contradict (not just different angles)",
+    "No invented themes (must be supported by facts); no invented gaps",
+    "v1.meta.json has producer: 'analyzer' and validation.status: 'pending'"
+  ],
+  "refactor_delta": {
+    "scope": "Small",
+    "current_state": "Analyzer spec is the contract layer; the themes/gaps/contradictions identification is in skills/03_analyze/SKILL.md § Process.",
+    "target_state": "Identification detail stays in skills/03_analyze/SKILL.md.",
+    "concrete_steps": [
+      "Keep the 'Identify' sub-steps in skills/03_analyze/SKILL.md (already moved).",
+      "Add Tool allowlist current vs target section to the agent spec.",
+      "Implement agents/analyzer/.claude/settings.json to enforce stage folder restriction."
+    ]
+  }
+}

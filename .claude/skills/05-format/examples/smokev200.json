@@ -1,0 +1,8 @@
+{
+  "_source": "scripts/smoke_v2.py:135-144, 147-188",
+  "_lifted_from": "smokev200",
+  "artifact": {
+    "json": "see fixtures/expected_v1.json",
+    "md":   "see fixtures/expected_v1.md"
+  }
+}

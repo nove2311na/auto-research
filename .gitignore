@@ -27,6 +27,18 @@ inputs/processed/
 # Pipeline outputs (regenerated per input; can be large)
 outputs/
 
+# Observability traces (regenerated per run; can be large)
+observability/traces/agent_runs/*.json
+observability/traces/tool_calls/*.json
+observability/traces/memory_reads/*.json
+observability/traces/memory_writes/*.json
+observability/traces/gates/*.json
+observability/traces/approvals/*.json
+observability/dashboards/dashboard_*.json
+
+# Eval scorecards (regenerated per run)
+evals/scorecards/*.json
+
 # Local env
 .env
 

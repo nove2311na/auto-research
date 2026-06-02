@@ -1,0 +1,10 @@
+{
+  "_approach": "A: entity-first",
+  "entities": [
+    {"name": "<name>", "type": "person|org|place|concept|product|event|other", "mentions": 0, "aliases": []}
+  ],
+  "facts": [
+    {"claim": "<atomic claim, 1 sentence>", "evidence_quote": "<short verbatim quote from source>", "confidence": "high|medium|low"}
+  ],
+  "quotes": []
+}

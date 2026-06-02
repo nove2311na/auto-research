@@ -1,0 +1,18 @@
+{
+  "_approach": "A: entity-first",
+  "_source": "skill spec § Process step 3",
+  "entities": [
+    {"name": "Google", "type": "org", "mentions": 2, "aliases": []},
+    {"name": "IBM", "type": "org", "mentions": 1, "aliases": []},
+    {"name": "Microsoft", "type": "org", "mentions": 1, "aliases": []},
+    {"name": "Surface code", "type": "concept", "mentions": 3, "aliases": ["surface codes"]},
+    {"name": "Threshold theorem", "type": "concept", "mentions": 1, "aliases": []},
+    {"name": "Logical qubit", "type": "concept", "mentions": 4, "aliases": ["logical qubits"]}
+  ],
+  "facts": [
+    {"claim": "Surface codes remain the dominant QEC modality", "evidence_quote": "Surface codes remain the dominant modality", "confidence": "high"},
+    {"claim": "Logical qubit counts crossed 1000 in 2026", "evidence_quote": "logical qubit counts crossing 1000 in late 2025", "confidence": "high"},
+    {"claim": "Threshold for surface codes is approximately 1%", "evidence_quote": "the threshold is approximately 1%", "confidence": "high"}
+  ],
+  "quotes": []
+}

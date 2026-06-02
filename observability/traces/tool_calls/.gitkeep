@@ -1,0 +1,1 @@
+One trace per tool call. Filename: `<run_id>__<tool>__<seq>.json`.

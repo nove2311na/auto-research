@@ -1,0 +1,5 @@
+{
+  "_source": "scripts/smoke_v2.py:74-86 (single-winner variant)",
+  "_lifted_from": "smokev200 / the smoke script does NOT exercise 3-option; this is the equivalent single-winner shape",
+  "artifact": "see fixtures/expected_winner.json"
+}

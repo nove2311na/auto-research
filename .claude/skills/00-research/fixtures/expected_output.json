@@ -1,0 +1,51 @@
+{
+  "topic": "Quantum error correction 2026",
+  "depth": "medium",
+  "queries": [
+    {
+      "query": "quantum error correction 2026",
+      "round": 1,
+      "rationale": "broad scoping query",
+      "results_count": 12
+    },
+    {
+      "query": "surface code threshold logical qubit overhead",
+      "round": 2,
+      "rationale": "gap investigation",
+      "results_count": 8
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://arxiv.org/abs/2501.00001",
+      "title": "Surface codes in 2026",
+      "fetched_at": "2026-06-01T12:00:00Z",
+      "excerpt": "Surface codes remain dominant; logical qubit counts crossed 1000 in 2026.",
+      "relevance": "high"
+    },
+    {
+      "url": "https://arxiv.org/abs/2502.00002",
+      "title": "Fault-tolerant thresholds",
+      "fetched_at": "2026-06-01T12:00:00Z",
+      "excerpt": "Fault-tolerant thresholds remain below 1% for standard noise models.",
+      "relevance": "high"
+    },
+    {
+      "url": "https://www.nature.com/articles/qec2026",
+      "title": "QEC industrial maturity",
+      "fetched_at": "2026-06-01T12:00:00Z",
+      "excerpt": "Physical-to-logical qubits overhead ratios are targetting 1M:1.",
+      "relevance": "medium"
+    }
+  ],
+  "synthesis": "Quantum error correction has reached industrial maturity in 2026. Surface codes dominate the field with logical qubit counts crossing 1000 [1]. Multiple platforms have demonstrated below-threshold operation [2]. The community consensus is that approximately 1 million physical qubits per logical qubit will be required, a 10x reduction from earlier estimates [3].",
+  "key_findings": [
+    "Surface codes remain the dominant QEC modality",
+    "1000+ logical qubits demonstrated in 2026",
+    "Physical-to-logical ratio target: 1M:1 (down from 10M:1)"
+  ],
+  "gaps": [
+    "Long-term stability of logical qubits (>1 week coherence) is still untested",
+    "Multi-week coherence measurements are needed on physical hardware"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "status": "pass|fail",
+  "validator": "critic",
+  "validated_at": "<iso8601>",
+  "score": 0.0,
+  "feedback": "<what failed + how to fix>",
+  "checks": {
+    "schema": "pass|fail|skip",
+    "completeness": "pass|fail|skip",
+    "llm_judge": "pass|fail|skip"
+  }
+}

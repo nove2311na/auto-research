@@ -1,0 +1,18 @@
+{
+  "summary": "<1-3 sentences, stands alone>",
+  "insights": [
+    {"insight": "<1-2 sentence claim>", "grounding": "<theme/gap/contradiction name>", "novelty": "high|medium|low"}
+  ],
+  "narrative": "<1-3 paragraphs that read as one piece, no bulleted list>",
+  "diagrams": [
+    {"type": "flowchart|mindmap|sequence|class|state|er|gantt", "title": "<short>", "description": "<1 line>", "code": "<mermaid code WITHOUT ```mermaid wrapper>"}
+  ],
+  "theses": [
+    {
+      "statement": "<specific claim>",
+      "evidence": ["<from 02_extract.facts or 00_research.key_findings>"],
+      "counterarguments": ["<strongest objection>"],
+      "confidence": "high|medium|low"
+    }
+  ]
+}

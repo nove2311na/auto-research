@@ -1,0 +1,1 @@
+One trace per memory write. Filename: `<run_id>__<agent>__<path_hash>.json`.

@@ -1,0 +1,100 @@
+{
+  "stage_id": "01_ingest",
+  "owning_agent": "ingestor",
+  "schema_ref": "schemas/01_ingest.json",
+  "output_format": "json",
+  "max_options": 1,
+  "max_retries": 3,
+  "antonio_gulli_patterns": ["Ch. 5 Tool Use", "Ch. 10 MCP"],
+  "claude_code_book_chapters": ["Ch. 5 MCP"],
+  "helpers": {
+    "fixtures":   ".claude/skills/01-ingest/fixtures/",
+    "templates":  ".claude/skills/01-ingest/templates/",
+    "scripts":    ".claude/skills/01-ingest/scripts/",
+    "examples":   ".claude/skills/01-ingest/examples/",
+    "rubric":     ".claude/skills/01-ingest/rubric.md",
+    "eval_cases": ".claude/skills/01-ingest/eval-cases.md"
+  },
+  "input_schema": {
+    "fields": [
+      {"name": "input_id", "type": "string (8 hex)", "required": true, "source": "derived via tools.fetch_input.input_id_for(text)"},
+      {"name": "input_ref", "type": "string (path/URL/topic)", "required": true, "source": "hcom message from @orch"},
+      {"name": "00_research/v1.json", "type": "file path", "required": false, "source": "sibling file in outputs/<id>/ (defensive: missing -> proceed without merge)"}
+    ],
+    "hcom_message_example": "hcom send --name <sender> \"@research-pipeline-claude-2 ingest: <input_id>; input=<input_ref>; write outputs/<input_id>/01_ingest/v1.txt + v1.meta.json; then report to @research-pipeline-claude-6\""
+  },
+  "process": [
+    {"step": 1, "type": "deterministic", "description": "Read hcom message. Extract input_ref."},
+    {"step": 2, "type": "deterministic", "description": "Call tools.fetch_input.fetch(<input_ref>) -> (text, meta_from_fetch). Compute input_id = tools.fetch_input.input_id_for(text)."},
+    {"step": 3, "type": "deterministic", "description": "If outputs/<id>/00_research/v1.json exists: read the dossier, build the ## Research Context block, append to text -> final_text, set meta.metadata.research_ref = '00_research/v1.json'. If missing: proceed without it."},
+    {"step": 4, "type": "deterministic", "description": "Write v1.txt (primary artifact) via tools.artifact_io.write_artifact.", "code_block": "v = next_version(input_id, '01_ingest')\nwrite_artifact(input_id, '01_ingest', v, final_text, ext='txt')"},
+    {"step": 5, "type": "llm", "description": "Optional: if source has rich metadata, also write v1.json matching schemas/01_ingest.json with text + metadata."},
+    {"step": 6, "type": "deterministic", "description": "Build + write meta via build_meta + write_meta, merging meta_from_fetch and (optionally) metadata.research_ref."},
+    {"step": 7, "type": "deterministic", "description": "Ack to @orch with the path. Then ping @critic with validate: <input_id> 01_ingest."}
+  ],
+  "output_schema": {
+    "required_fields": ["text", "metadata"],
+    "template": {
+      "text": "<full text including the Research Context block if merged>",
+      "metadata": {
+        "source_type": "text|file|url|pdf|docx|batch_dir",
+        "source_ref": "<original path/URL>",
+        "size_bytes": 1234,
+        "fetched_at": "2026-06-01T12:00:00Z",
+        "encoding": "utf-8",
+        "title": "<if extractable>",
+        "research_ref": "00_research/v1.json"
+      }
+    }
+  },
+  "examples": [
+    {
+      "source": "scripts/smoke_v2.py:48-71",
+      "lifted_from": "real example with dossier merged",
+      "artifact": {
+        "text": "Quantum error correction 2026\n\n## Research Context\n\nQuantum error correction matured significantly in 2026...\n\n**Sources:**\n[1] QEC Review 2026 — https://example.com/qec-review-2026\n[2] Google Condor Update — https://example.com/google-condor-2025\n\n**Key findings:**\n- Surface codes crossed the 1000 logical qubit milestone in 2026\n",
+        "metadata": {
+          "source_type": "text",
+          "source_ref": "inputs/inbox/qec.txt",
+          "size_bytes": 580,
+          "research_ref": "00_research/v1.json"
+        }
+      }
+    }
+  ],
+  "self_check": [
+    {"step": 1, "check": "v1.txt is non-empty UTF-8"},
+    {"step": 2, "check": "If 00_research/v1.json was present, v1.txt ends with ## Research Context block"},
+    {"step": 3, "check": "Citations in merged block contain [1], [2], etc., matching dossier sources[] indices"},
+    {"step": 4, "check": "If dossier was merged, v1.meta.json#metadata.research_ref = '00_research/v1.json'"},
+    {"step": 5, "check": "If dossier was absent, research_ref is absent (not null, not '')"},
+    {"step": 6, "check": "v1.meta.json has producer: 'ingestor', validation.status: 'pending', parent_ref: <input_ref>"},
+    {"step": 7, "check": "@critic pinged with validate: <input_id> 01_ingest"}
+  ],
+  "validation": {
+    "check_refs": ["validation/02-post-execution-completeness.md", "validation/03-llm-judge.md"],
+    "threshold": 0.7,
+    "common_failures": [
+      {"failure": "TXT empty (agent failed to fetch / wrote nothing)", "fix": "Re-fetch with longer timeout"},
+      {"failure": "JSON text empty or metadata.source_type invalid", "fix": "Check fetch_input dispatch"},
+      {"failure": "LLM-judge low (dossier not merged)", "fix": "Re-run, ensure 00_research/v1.json is read first"}
+    ]
+  },
+  "failure_modes": [
+    {"name": "URL fetch fails (404, timeout, 5xx)", "handling": "Write meta with validation.pending and a note in the feedback field."},
+    {"name": "PDF is encrypted or scanned (no text layer)", "handling": "Write what you can extract; meta.feedback says 'no text layer; downstream may be empty'."},
+    {"name": "Source > 1 MB", "handling": "Truncate at 1 MB with a note."},
+    {"name": "Source is a batch directory", "handling": "Process the first file only; tell @orch there are N more waiting."},
+    {"name": "Defensive: 00_research/v1.json missing", "handling": "Proceed without merging; leave metadata.research_ref absent."}
+  ],
+  "refactor_delta": {
+    "scope": "Small",
+    "current_state": "5-step process + 30 lines of merge code in this spec's Process step 3.",
+    "target_state": "All process detail stays in this spec; the ingestor's JSON contract is the only agent truth.",
+    "concrete_steps": [
+      "Keep the merge code block in this spec's Process step 3 (already moved).",
+      "Add a JSON variant to the schema's metadata block: ensure research_ref is explicitly optional in schemas/01_ingest.json.",
+      "Add metadata.fetched_at as required (currently optional)."
+    ]
+  }
+}

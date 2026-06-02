@@ -1,0 +1,14 @@
+{
+  "_source": "scripts/smoke_v2.py:215-222",
+  "_lifted_from": "smokev200",
+  "artifact": {
+    "validation_block": {
+      "status": "pass",
+      "validator": "critic",
+      "validated_at": "2026-06-02T12:00:00Z",
+      "score": 0.85,
+      "feedback": "all checks passed",
+      "checks": {"schema": "pass", "completeness": "pass", "llm_judge": "pass"}
+    }
+  }
+}

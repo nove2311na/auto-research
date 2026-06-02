@@ -1,0 +1,9 @@
+{
+  "text": "<UTF-8 plain text, may be merged with research dossier>",
+  "metadata": {
+    "input_ref": "<original input_ref>",
+    "source_ref": "<where the text came from>",
+    "fetched_at": "<iso8601>",
+    "research_ref": "<00_research/v1.json-or-null>"
+  }
+}

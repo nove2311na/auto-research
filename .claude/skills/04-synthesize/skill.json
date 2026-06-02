@@ -1,0 +1,120 @@
+{
+  "stage_id": "04_synthesize",
+  "owning_agent": "synthesizer",
+  "schema_ref": "schemas/04_synthesize.json",
+  "output_format": "json",
+  "max_options": 1,
+  "max_retries": 3,
+  "antonio_gulli_patterns": ["Ch. 5 Tool Use", "Ch. 16 Reasoning Techniques", "Ch. 18 Guardrails"],
+  "claude_code_book_chapters": ["Ch. 3 Context Engineering", "Ch. 8 Prompt Craft"],
+  "helpers": {
+    "fixtures":   ".claude/skills/04-synthesize/fixtures/",
+    "templates":  ".claude/skills/04-synthesize/templates/",
+    "scripts":    ".claude/skills/04-synthesize/scripts/",
+    "examples":   ".claude/skills/04-synthesize/examples/",
+    "rubric":     ".claude/skills/04-synthesize/rubric.md",
+    "eval_cases": ".claude/skills/04-synthesize/eval-cases.md"
+  },
+  "input_schema": {
+    "fields": [
+      {"name": "input_id", "type": "string (8 hex)", "required": true, "source": "hcom message from @orch"},
+      {"name": "03_analyze/v1.json", "type": "file path", "required": true, "source": "upstream artifact"},
+      {"name": "02_extract/v1.json", "type": "file path", "required": true, "source": "upstream artifact (for cross-reference to facts)"},
+      {"name": "00_research/v1.json", "type": "file path", "required": false, "source": "upstream artifact (for key_findings in thesis evidence)"}
+    ],
+    "hcom_message_example": "hcom send --name <sender> \"@research-pipeline-claude-5 synthesize: <input_id>; input=outputs/<input_id>/03_analyze/v1.json; schema=schemas/04_synthesize.json; then report to @research-pipeline-claude-6\""
+  },
+  "process": [
+    {"step": 1, "type": "llm", "description": "Read 03_analyze/v1.json, 02_extract/v1.json, optionally 00_research/v1.json."},
+    {"step": 2, "type": "llm", "description": "Form a mental model: 'what is this source about, what's the most important takeaway?'"},
+    {"step": 3, "type": "llm", "description": "Compose summary (1-3 sentence TL;DR, maxLength 1000)."},
+    {"step": 4, "type": "llm", "description": "Compose insights[] (3-7 entries; each has insight, grounding, novelty)."},
+    {"step": 5, "type": "llm", "description": "Compose narrative (1-3 paragraph connected piece)."},
+    {"step": 6, "type": "llm", "description": "Compose diagrams[] (2-5 entries; at least one flowchart and one mindmap; code is raw Mermaid WITHOUT ```mermaid wrapper)."},
+    {"step": 7, "type": "llm", "description": "Compose theses[] (2-5 entries; each has statement, evidence[] (from 02_extract.facts or 00_research.key_findings), counterarguments[], confidence)."},
+    {"step": 8, "type": "deterministic", "description": "Write v1.json to outputs/<id>/04_synthesize/v1.json."},
+    {"step": 9, "type": "deterministic", "description": "Write v1.meta.json with validation: pending."},
+    {"step": 10, "type": "deterministic", "description": "Ping @critic with validate: <input_id> 04_synthesize."}
+  ],
+  "output_schema": {
+    "required_fields": ["summary", "insights", "narrative", "diagrams", "theses"],
+    "template": {
+      "summary": "<1-3 sentence TL;DR, max 1000 chars>",
+      "insights": [{"insight": "<1-2 sentence claim>", "grounding": "<reference to theme/gap/contradiction>", "novelty": "high|medium|low"}],
+      "narrative": "<1-3 paragraph connected piece>",
+      "diagrams": [
+        {"type": "flowchart", "title": "<short title>", "code": "<raw Mermaid syntax, NO ```mermaid wrapper>", "description": "<optional 1-line>"},
+        {"type": "mindmap", "title": "<short title>", "code": "<raw Mermaid syntax>"}
+      ],
+      "theses": [
+        {"statement": "<clear claim>", "evidence": ["<fact 1>", "<fact 2>"], "counterarguments": ["<opposing view 1>"], "confidence": "high|medium|low"}
+      ]
+    }
+  },
+  "examples": [
+    {
+      "source": "scripts/smoke_v2.py:108-132",
+      "lifted_from": "real example with 1 flowchart + 1 mindmap + 2 theses",
+      "artifact": {
+        "summary": "Quantum error correction crossed industrial viability in 2026 with 1000+ logical qubits via surface codes, but overhead and decoding latency remain critical bottlenecks.",
+        "insights": [
+          {"insight": "Surface codes are the de facto standard for 2026 industrial QEC", "grounding": "themes: surface code dominance, industrial scaling", "novelty": "medium"}
+        ],
+        "narrative": "The past year marked a turning point for quantum error correction, as multiple platforms achieved below-threshold operation with hundreds to thousands of logical qubits.",
+        "diagrams": [
+          {"type": "flowchart", "title": "QEC Pipeline", "code": "flowchart LR\n  A[Physical Qubits] --> B[Surface Code Encoding]\n  B --> C[Stabilizer Measurements]\n  C --> D[Real-time Decoder]\n  D --> E[Logical Qubit]", "description": "The error correction cycle."},
+          {"type": "mindmap", "title": "QEC Landscape 2026", "code": "mindmap\n  root((QEC 2026))\n    Codes\n      Surface\n      Color"}
+        ],
+        "theses": [
+          {"statement": "Surface codes will dominate industrial QEC for the next 3-5 years", "evidence": ["1000+ logical qubit demonstrations in 2026", "Mature fabrication processes favor planar codes"], "counterarguments": ["Color codes have better transversal gate sets"], "confidence": "high"},
+          {"statement": "Decoder latency, not qubit count, is the real bottleneck to fault tolerance", "evidence": ["Real-time decoding required for syndrome extraction cycles"], "counterarguments": ["FPGA-based decoders already operate at MHz rates"], "confidence": "medium"}
+        ]
+      }
+    }
+  ],
+  "self_check": [
+    {"step": 1, "check": "All required fields present (summary, insights, narrative, diagrams, theses)"},
+    {"step": 2, "check": "summary is 1-3 sentences; readable without any other context; <=1000 chars"},
+    {"step": 3, "check": "insights[] has 3-7 entries; each has insight + grounding (required)"},
+    {"step": 4, "check": "Each insight references a theme/gap/contradiction from 03_analyze (no floating insights)"},
+    {"step": 5, "check": "Each insights[].novelty is high|medium|low"},
+    {"step": 6, "check": "narrative is 1-3 paragraphs; reads as one piece (not 5 stapled paragraphs)"},
+    {"step": 7, "check": "diagrams[] has >=2 entries"},
+    {"step": 8, "check": "At least one flowchart AND one mindmap (per agents/synthesizer/AGENT.md:28)"},
+    {"step": 9, "check": "Diagram code is Mermaid syntax WITHOUT the ```mermaid wrapper (formatter adds it)"},
+    {"step": 10, "check": "Each diagrams[].type is in flowchart|sequence|mindmap|graph|class|state|concept"},
+    {"step": 11, "check": "theses[] has >=2 entries"},
+    {"step": 12, "check": "Each theses[].evidence[] drawn from 02_extract.facts[] or 00_research.key_findings[] (no invented evidence)"},
+    {"step": 13, "check": "Each theses[].counterarguments[] has 1-3 entries, honestly engaged"},
+    {"step": 14, "check": "Each theses[].confidence is high|medium|low"},
+    {"step": 15, "check": "No invented facts (every claim traces to 02_extract or 00_research)"},
+    {"step": 16, "check": "v1.meta.json has producer: 'synthesizer', validation.status: 'pending'"},
+    {"step": 17, "check": "@critic pinged with validate: <input_id> 04_synthesize"}
+  ],
+  "validation": {
+    "check_refs": ["validation/02-post-execution-completeness.md", "validation/03-llm-judge.md"],
+    "threshold": 0.7,
+    "common_failures": [
+      {"failure": "diagrams has <2 entries (or no flowchart/mindmap)", "fix": "Add diagrams; review Mermaid syntax mentally before writing"},
+      {"failure": "theses has <2 entries", "fix": "Add another thesis with 2-3 evidence + 1-2 counterarguments"},
+      {"failure": "summary exceeds 1000 chars", "fix": "Trim to 1-3 punchy sentences"},
+      {"failure": "LLM-judge scores < 0.7 (insights float, narrative reads as a list, diagrams don't render)", "fix": "Re-ground insights, rewrite narrative as a connected piece, fix Mermaid syntax"}
+    ]
+  },
+  "failure_modes": [
+    {"name": "Empty 03_analyze", "handling": "Output a summary that says so: 'Source material had no extractable themes.'"},
+    {"name": "Too many insights", "handling": "3-7 is the sweet spot. More than 10 and the narrative falls apart."},
+    {"name": "Mermaid syntax errors", "handling": "0 diagrams with valid code -> critic's LLM-judge will catch; test syntax mentally before writing"}
+  ],
+  "refactor_delta": {
+    "scope": "Medium",
+    "current_state": "Diagrams + theses types in this spec's Process + Output schema sections. The >=2 diagrams + >=2 theses rule is in the prompt but NOT in schemas/04_synthesize.json (no minItems).",
+    "target_state": "All process detail stays in this spec; schema gains minItems: 2 to make the rule deterministic.",
+    "concrete_steps": [
+      "Keep diagram+thesis types in this spec (already moved).",
+      "Add minItems: 2 to schemas/04_synthesize.json#diagrams and #theses. (Schema change; makes the rule deterministic.)",
+      "Add minItems: 1, maxItems: 7 to schemas/04_synthesize.json#insights.",
+      "Add maxLength: 3000 to schemas/04_synthesize.json#narrative."
+    ]
+  }
+}

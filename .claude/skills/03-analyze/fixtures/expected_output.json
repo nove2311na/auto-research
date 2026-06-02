@@ -1,0 +1,44 @@
+{
+  "themes": [
+    {
+      "name": "surface code dominance",
+      "description": "Surface codes are the de facto industrial QEC modality",
+      "supporting_facts": [
+        "Surface codes remain the dominant modality",
+        "logical qubit counts crossed 1000 in late 2025"
+      ]
+    },
+    {
+      "name": "threshold achievement",
+      "description": "Multiple platforms have demonstrated below-threshold operation",
+      "supporting_facts": [
+        "Google demonstrated below-threshold operation on a 72-qubit Sycamore-class device",
+        "IBM Heron R3 announced 156-qubit error-corrected operation with real-time decoding"
+      ]
+    },
+    {
+      "name": "overhead reduction",
+      "description": "Physical-to-logical ratio target has dropped 10x from earlier estimates",
+      "supporting_facts": [
+        "fault-tolerant quantum computing will require approximately 1 million physical qubits per logical qubit, down from earlier estimates of 10 million"
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "description": "Long-term stability of logical qubits (>1 week coherence)",
+      "what_would_fill_it": "Multi-week coherence measurements on hardware"
+    },
+    {
+      "description": "Bosonic codes and color codes mentioned as future but no concrete progress",
+      "what_would_fill_it": "Research papers / product announcements on bosonic + color codes in 2026"
+    }
+  ],
+  "contradictions": [
+    {
+      "claim_a": "Academic literature claims overhead reduction through better decoding algorithms",
+      "claim_b": "Industrial practice still uses 1000:1 physical-to-logical ratio",
+      "explanation": "Decoding overhead and syndrome measurement costs may offset theoretical savings"
+    }
+  ]
+}

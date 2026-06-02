@@ -1,0 +1,93 @@
+{
+  "name": "orchestrator",
+  "hcom_target": "@research-pipeline-claude-1",
+  "folder": "agents/orchestrator/",
+  "lifecycle": "per-handoff",
+  "purpose": "Pipeline conductor — routes work to stage agents, dispatches to critic, handles retries up to max_retries, halts on exhaustion, finalizes the manifest.",
+  "antonio_gulli_patterns": ["Ch. 2 Routing", "Ch. 6 Planning", "Ch. 7 Multi-Agent", "Ch. 8 Memory", "Ch. 11 Goal-Setting", "Ch. 15 A2A", "Ch. 16 Reasoning Techniques"],
+  "claude_code_book_chapters": ["Ch. 2 Permission Architecture", "Ch. 4 Multi-Agent Orchestration", "Ch. 10 Failure Modes"],
+  "skills_owned": [],
+  "tools_allowed": [
+    {"tool": "Bash(hcom:*)", "purpose": "Send tasks to stage agents, list active, get events", "justification": "Per .claude/settings.json permissions.allow (hcom-only allowlist)"},
+    {"tool": "Bash(uv run python -m tools.manifest:*)", "purpose": "init_manifest, record_attempt, is_done", "justification": "Orchestrator owns manifest reads"},
+    {"tool": "Bash(uv run python -m tools.fetch_input:*)", "purpose": "input_id_for, fetch", "justification": "Derive input_id before kicking off"},
+    {"tool": "Read", "purpose": "AGENTS.md, pipeline.json, prd.json, learnings.md, progress.md, task_plan.md, notes.md", "justification": "State-on-disk pattern (Ralph Wiggum loop) + Planning with Files"},
+    {"tool": "Write", "purpose": "prd.json (state), progress.md (audit log), task_plan.md, notes.md", "justification": "Explicit in AGENTS.md (orchestrator owns state files) + Planning with Files"},
+    {"tool": "Grep", "purpose": "Locate files in outputs/, inputs/", "justification": "File presence check"},
+    {"tool": "Glob", "purpose": "Locate files in outputs/, inputs/", "justification": "File presence check"}
+  ],
+  "tools_denied": [
+    "WebSearch — research is the researcher's job",
+    "WebFetch — research is the researcher's job",
+    "Edit of any v1.* artifact — only stage agents write artifacts",
+    "Edit of manifest.json content — only record_attempt and finalize (called by critic and formatter)",
+    "Edit of pipeline.json — humans own this (AGENTS.md invariant #1)"
+  ],
+  "input_contract": {
+    "description": "Initial hcom message with input_id, input_ref (path/URL/topic), depth (default medium). For batch inputs, optional list of files.",
+    "hcom_message_pattern": "^orch: <input_id>$",
+    "required_fields": ["input_id", "input_ref", "depth"]
+  },
+  "output_contract": {
+    "paths_written": [
+      "prd.json (read+write; orchestrator's state file)",
+      "progress.md (append-only; one line per transition)"
+    ],
+    "schema_ref": "(none)",
+    "examples": ["AGENTS.md § Orchestrator (handoff templates)"]
+  },
+  "hard_rules": [
+    "You do not write to any v1.* artifact. Only the stage agent for that stage writes content.",
+    "You do not call tools.validator.validate_artifact(). Only the critic does. (:87)",
+    "You do not write manifest.json content. Only record_attempt and finalize from tools.manifest. (:88)",
+    "You do write prd.json (state) and progress.md (audit log). (:89)",
+    "On max-retries-exhausted, you STOP. You do not skip the stage or fake a pass. (:90)"
+  ],
+  "reads_at_session_start": [
+    "AGENTS.md",
+    "pipeline.json",
+    "prd.json",
+    "learnings.md",
+    "progress.md"
+  ],
+  "writes_during_session": ["prd.json", "progress.md"],
+  "persistence": "State on disk, not in memory (per AGENTS.md Ralph Wiggum loop). Each handoff reads prd.json to recover state.",
+  "inbound_handoffs": [
+    {"from": "scripts/run_pipeline.sh", "title_pattern": "orch: <input_id>", "description": "Kickoff with input_id, input_ref, depth"},
+    {"from": "critic", "title_pattern": "verdict: <input_id> <stage>", "description": "Validation verdict for the stage just validated"}
+  ],
+  "outbound_handoffs": [
+    {"to": "research", "title_pattern": "research: <input_id>", "description": "Stage 00_research handoff"},
+    {"to": "ingest", "title_pattern": "ingest: <input_id>", "description": "Stage 01_ingest handoff"},
+    {"to": "extract", "title_pattern": "extract: <input_id>", "description": "Stage 02_extract handoff (multi-option)"},
+    {"to": "analyze", "title_pattern": "analyze: <input_id>", "description": "Stage 03_analyze handoff"},
+    {"to": "synth", "title_pattern": "synthesize: <input_id>", "description": "Stage 04_synthesize handoff"},
+    {"to": "format", "title_pattern": "format: <input_id>", "description": "Stage 05_format handoff (final)"},
+    {"to": "critic", "title_pattern": "validate: <input_id> <stage> [version]", "description": "Per-stage validation handoff"}
+  ],
+  "failure_modes": [
+    {"name": "Critic returns no decision in 5 min", "handling": "Re-send the validation task once. If still no response, escalate to human."},
+    {"name": "Stage agent produces v1 but writes no meta", "handling": "Nudge the stage agent; never write meta on its behalf. (:117)"},
+    {"name": "File not at expected path", "handling": "Ask the stage agent to confirm before proceeding; do not infer. (:118)"},
+    {"name": "All retries exhausted", "handling": "Append a halted entry to progress.md, notify (Slack if configured), halt the pipeline for this input."}
+  ],
+  "self_verification": [
+    "prd.json.current_input_id set before the first stage handoff",
+    "After each stage, prd.json.current_stage advances",
+    "After each critic verdict, prd.json.retries[<stage>] increments on fail",
+    "On all-stages-pass: manifest.completed_at is set (via formatter)",
+    "On halt: progress.md has a halted | <input_id> entry",
+    "inputs/processed/ contains the source file (moved from inbox/)"
+  ],
+  "refactor_delta": {
+    "scope": "Medium",
+    "current_state": "Orchestrator spec consolidates 6 handoff templates + hard rules + state shape in this single .json contract.",
+    "target_state": "Handoff templates live in skills/NN-*.md § Communication; this spec stays as the contract layer.",
+    "concrete_steps": [
+      "Move the 6 handoff templates into the corresponding skills/NN-*.md files as Communication -> Outbound handoffs.",
+      "Replace them in the orchestrator's AGENT.md with a 1-line table: Stage handoff: see skills/NN-*.md § Communication.",
+      "Add an explicit Tool allowlist current vs target section and document the proposed tightening.",
+      "Implement agents/orchestrator/.claude/settings.json with permissions.allow for hcom + state files only."
+    ]
+  }
+}

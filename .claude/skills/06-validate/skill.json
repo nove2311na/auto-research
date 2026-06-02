@@ -1,0 +1,126 @@
+{
+  "stage_id": "06_validate",
+  "owning_agent": "critic",
+  "schema_ref": "N/A",
+  "output_format": "json",
+  "max_options": 1,
+  "max_retries": 3,
+  "antonio_gulli_patterns": ["Ch. 4 Reflection", "Ch. 18 Guardrails", "Ch. 19 Evaluation & Monitoring"],
+  "claude_code_book_chapters": ["Ch. 10 Failure Modes", "Ch. 12 Team Adoption"],
+  "helpers": {
+    "fixtures":   ".claude/skills/06-validate/fixtures/",
+    "templates":  ".claude/skills/06-validate/templates/",
+    "scripts":    ".claude/skills/06-validate/scripts/",
+    "examples":   ".claude/skills/06-validate/examples/",
+    "rubric":     ".claude/skills/06-validate/rubric.md",
+    "eval_cases": ".claude/skills/06-validate/eval-cases.md"
+  },
+  "input_schema": {
+    "fields": [
+      {"name": "hcom message title", "type": "string", "required": true, "source": "pattern: 'validate: <input_id> <stage> [version]'"},
+      {"name": "Artifact to validate", "type": "file path", "required": true, "source": "outputs/<input_id>/<stage>/v<N>.<ext> (or options/<X>/v1.json for multi-option)"},
+      {"name": "LLM-judge score", "type": "float (0.0-1.0)", "required": true, "source": "the critic's own judgment"}
+    ],
+    "hcom_message_example": "hcom send --name <sender> \"@research-pipeline-claude-6 validate: <input_id> 02_extract; path=outputs/<input_id>/02_extract/options/{A,B,C}/v1.json; schema=schemas/02_extract.json; report verdict to @research-pipeline-claude-1\""
+  },
+  "process": [
+    {"step": 1, "type": "deterministic", "description": "Read the artifact at outputs/<id>/<stage>/v<N>.<ext>."},
+    {"step": 2, "type": "deterministic", "description": "Run validate_artifact(input_id, stage, version, ext, llm_judge_score=None): schema check (jsonschema.Draft7Validator vs schemas/<stage>.json; TXT stages get status: skip) + completeness check (all required fields present, non-null, non-'', non-{})."},
+    {"step": 3, "type": "deterministic", "description": "If schema+completeness = fail, do NOT bother with LLM-judge — surface the error."},
+    {"step": 4, "type": "llm", "description": "Read the artifact. Form a 0.0-1.0 quality score grounded in the per-stage quality bar (see skills/<stage>/SKILL.md self-check sections)."},
+    {"step": 5, "type": "deterministic", "description": "Re-call validate_artifact(input_id, stage, version, ext, llm_judge_score=score) to record the score."},
+    {"step": 6, "type": "deterministic", "description": "Call tools.manifest.record_attempt(input_id, stage, version, status, score, feedback=...)."},
+    {"step": 7, "type": "deterministic", "description": "Reply to @orch with verdict: <input_id> <stage> + pass|fail score=N feedback=..."},
+    {"step": 8, "type": "llm", "description": "For multi-option (02_extract): for each option A/B/C, repeat steps 1-7 to record a score per option. Pick the highest-scoring option."},
+    {"step": 9, "type": "deterministic", "description": "For multi-option: call tools.artifact_io.pick_winner(input_id, '02_extract', option_scores, ext='json') — copies the winner's v1.json to the stage root, writes v1.meta.json with picked_option + picked_score."},
+    {"step": 10, "type": "deterministic", "description": "Re-validate the stage-root copy with the winner's LLM-judge score."},
+    {"step": 11, "type": "deterministic", "description": "Call record_attempt(input_id, '02_extract', 1, status, score, options=3, picked=<letter>, feedback=...)."}
+  ],
+  "output_schema": {
+    "required_fields": ["validation_block", "manifest_entry"],
+    "template": {
+      "validation_block": {
+        "status": "pass|fail",
+        "validator": "critic",
+        "validated_at": "2026-06-01T12:00:00Z",
+        "score": 0.85,
+        "feedback": "all checks passed",
+        "checks": {"schema": "pass|fail|skip", "completeness": "pass|fail|skip", "llm_judge": "pass|fail|skip"}
+      },
+      "manifest_entry": {"version": 1, "status": "pass|fail", "score": 0.85, "options": 3, "picked": "B", "feedback": "..."}
+    }
+  },
+  "examples": [
+    {
+      "source": "scripts/smoke_v2.py:215-222",
+      "lifted_from": "real example: score 0.85 -> pass, score 0.5 -> fail",
+      "artifact": {
+        "validation_block": {
+          "status": "pass",
+          "validator": "critic",
+          "validated_at": "2026-06-01T12:00:00Z",
+          "score": 0.85,
+          "feedback": "all checks passed",
+          "checks": {"schema": "pass", "completeness": "pass", "llm_judge": "pass"}
+        },
+        "manifest_entry": {"version": 1, "status": "pass", "score": 0.85, "feedback": "all checks passed"}
+      }
+    },
+    {
+      "source": "synthetic",
+      "lifted_from": "synthetic example: multi-option pick_winner",
+      "artifact": {
+        "validation_block": {
+          "status": "pass",
+          "validator": "critic",
+          "validated_at": "2026-06-01T12:00:00Z",
+          "score": 0.92,
+          "feedback": "winner: B (score 0.92)",
+          "checks": {"schema": "pass", "completeness": "pass", "llm_judge": "pass"}
+        },
+        "manifest_entry": {"version": 1, "status": "pass", "score": 0.92, "options": 3, "picked": "B", "feedback": "winner: B"}
+      }
+    }
+  ],
+  "self_check": [
+    {"step": 1, "check": "Single-option flow: called validate_artifact twice (None then score)"},
+    {"step": 2, "check": "Multi-option flow: scored each option separately; called pick_winner with the correct option_scores dict"},
+    {"step": 3, "check": "Stage-root copy: for 02_extract, v1.json + v1.meta.json exist with picked_option + picked_score"},
+    {"step": 4, "check": "Meta validation block filled: status, validator (='critic'), validated_at, score, feedback, checks"},
+    {"step": 5, "check": "Manifest recorded: record_attempt called with correct status, score, options (multi-option), picked (multi-option)"},
+    {"step": 6, "check": "Reply to @orch includes pass|fail, score=, feedback= (for retries)"},
+    {"step": 7, "check": "On multi-option, did NOT overrule the highest-scoring option"},
+    {"step": 8, "check": "Did NOT edit any v1.json content (only meta + stage-root copy via pick_winner)"},
+    {"step": 9, "check": "Did not self-validate (N/A here, but principle holds)"},
+    {"step": 10, "check": "Threshold respected: pass iff score >= pipeline.json -> critic.llm_judge_threshold (default 0.7)"},
+    {"step": 11, "check": "Defaulted to pass when in doubt (per this spec's Process step 5)"},
+    {"step": 12, "check": "Tiebreak documented (per :65): if scores tied, picked higher schema+completeness; documented in feedback"}
+  ],
+  "validation": {
+    "check_refs": ["N/A — this IS the validation. The critic is the only validator (per AGENTS.md invariant #3)"],
+    "threshold": 0.7,
+    "common_failures": [
+      {"failure": "Schema missing", "fix": "BLOCK; orchestrator halts; fix by ensuring schemas/<stage>.json exists"},
+      {"failure": "JSON parse error", "fix": "Surface verbatim; orchestrator halts; fix by re-writing the artifact"},
+      {"failure": "LLM-judge tied", "fix": "Tiebreak on schema+completeness; document in feedback"},
+      {"failure": "All 3 retries fail", "fix": "Feedback says 'exhausted retries; orchestrator should halt'"}
+    ]
+  },
+  "failure_modes": [
+    {"name": "Schema file missing for this stage", "handling": "BLOCK with feedback 'schema missing: <path>'. Orchestrator halts."},
+    {"name": "Artifact is not valid JSON", "handling": "Schema check fails with the parse error. Surface it in feedback."},
+    {"name": "LLM judge returns a tie", "handling": "Pick the option that ranks higher on schema + completeness. Document the tiebreak in feedback."},
+    {"name": "All 3 retries fail", "handling": "Write feedback that explicitly says 'exhausted retries; orchestrator should halt'. Record each attempt in manifest."}
+  ],
+  "refactor_delta": {
+    "scope": "Large",
+    "current_state": "3-checks table + multi-option process in this spec's Process sections 'B. Multi-option stages' + 'C. The 3 checks table'. The LLM-judge is the critic's own judgment — no shared rubric, so scores may vary across runs.",
+    "target_state": "An eval rubric (JSON or prompt) makes the LLM-judge reproducible.",
+    "concrete_steps": [
+      "Keep the 3-checks table + multi-option process in this spec (already moved).",
+      "Author tools/eval_rubric.json with per-stage dimensions + weight.",
+      "Add per-rubric-dimension scores to v<N>.meta.json#validation#checks#llm_judge#dimensions (schema change).",
+      "Add scripts/smoke_llm_judge.py that runs the same input 5 times and asserts score variance < 0.1."
+    ]
+  }
+}

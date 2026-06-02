@@ -1,0 +1,91 @@
+{
+  "name": "researcher",
+  "hcom_target": "@research-pipeline-claude-8",
+  "folder": "agents/researcher/",
+  "lifecycle": "per-handoff",
+  "purpose": "Iterative WebSearch + WebFetch rounds on the input subject, producing a research dossier at outputs/<input_id>/00_research/v1.json.",
+  "antonio_gulli_patterns": ["Ch. 5 Tool Use", "Ch. 7 Multi-Agent", "Ch. 14 RAG", "Ch. 18 Guardrails"],
+  "claude_code_book_chapters": ["Ch. 5 MCP", "Ch. 8 Prompt Craft"],
+  "skills_owned": ["skills/00_research.md"],
+  "tools_allowed": [
+    {"tool": "WebSearch", "purpose": "Iterative queries per depth table", "justification": "Core research tool"},
+    {"tool": "WebFetch", "purpose": "Pull full page content for each URL", "justification": "Source content extraction"},
+    {"tool": "Bash(uv run python -m tools.fetch_input:*)", "purpose": "Resolve input_ref to text + meta", "justification": "Extract subject from non-topic inputs"},
+    {"tool": "Bash(uv run python -m tools.artifact_io:*)", "purpose": "Write dossier + meta", "justification": "Owns 00_research/ writes"},
+    {"tool": "Read", "purpose": "Read schemas, AGENTS.md, learnings.md", "justification": "Standard agent boot"},
+    {"tool": "Grep", "purpose": "Locate files in outputs/00_research/", "justification": "Self-check before writing"},
+    {"tool": "Glob", "purpose": "Locate files in outputs/00_research/", "justification": "Self-check before writing"}
+  ],
+  "tools_denied": [
+    "Edit of any v1.* artifact other than its own 00_research/v1.json",
+    "Edit of any other stage folder (01_ingest, 02_extract, etc.)",
+    "Bash(uv run python -m tools.validator:*) — critic only",
+    "Bash(uv run python -m tools.manifest:*) — orchestrator/critic/formatter only",
+    "Write of prd.json or progress.md — orchestrator only"
+  ],
+  "input_contract": {
+    "description": "hcom message from @orch with input_id, input_ref (path/URL/topic), depth (one of shallow/medium/deep).",
+    "hcom_message_pattern": "^research: <input_id> depth=(shallow|medium|deep)$",
+    "required_fields": ["input_id", "input_ref", "depth"]
+  },
+  "output_contract": {
+    "paths_written": [
+      "outputs/<input_id>/00_research/v1.json",
+      "outputs/<input_id>/00_research/v1.meta.json"
+    ],
+    "schema_ref": "schemas/00_research.json",
+    "examples": ["scripts/smoke_v2.py:18-45"]
+  },
+  "hard_rules": [
+    "You do not edit another agent's stage folder. You write only to outputs/<input_id>/00_research/.",
+    "You do not self-validate. The critic decides pass/fail. (:72)",
+    "You always write v1.meta.json even if research was trivial (e.g. shallow depth, 1 query, 1 source). (:73)",
+    "Source dedup is by URL only. Do NOT re-fetch the same URL twice across rounds. (:75)",
+    "You are a Claude session with WebSearch and WebFetch — use them. Do not try to read from local files for research. (:76)",
+    "Inline citations in synthesis are [N] where N is the 1-based index into sources[]. Every cited number must resolve to an existing source. (:79-80)"
+  ],
+  "reads_at_session_start": [
+    "AGENTS.md",
+    "schemas/00_research.json",
+    "tools/artifact_io.py",
+    "tools/fetch_input.py",
+    "learnings.md"
+  ],
+  "writes_during_session": [
+    "outputs/<id>/00_research/v1.json",
+    "outputs/<id>/00_research/v1.meta.json"
+  ],
+  "persistence": "None (the dossier is the persistent artifact; the researcher's working memory is the dossier itself plus the source URLs fetched so far).",
+  "inbound_handoffs": [
+    {"from": "orch", "title_pattern": "research: <input_id> depth=<X>", "description": "Initial orchestrator prompt with input_ref in description"}
+  ],
+  "outbound_handoffs": [
+    {"to": "critic", "title_pattern": "validate: <input_id> 00_research", "description": "Ping after writing dossier + meta"}
+  ],
+  "failure_modes": [
+    {"name": "WebSearch returns 0 results", "handling": "Record the query with results_count: 0, try a reformulation, note in gaps."},
+    {"name": "WebFetch times out / 4xx / 5xx", "handling": "Skip that URL, retry <=1, note in gaps if it was a key source. (:100)"},
+    {"name": "Topic is ambiguous", "handling": "Pick most likely subject from search-result context, record disambiguation in gaps. (:101-103)"},
+    {"name": "All sources are low-quality (SEO spam)", "handling": "Still produce the dossier; flag source-quality concern in gaps. (:104-105)"}
+  ],
+  "self_verification": [
+    "topic is one sentence, specific (not 'AI' — 'the current state of open-weights LLM safety research as of 2026')",
+    "Round 1 queries are diverse (not 5 variants of the same phrase)",
+    "Sources weighted toward primary/authoritative; relevance: high only for actually-cited sources",
+    "synthesis is one piece of writing (not stapled per-source paragraphs)",
+    "gaps are honest (no pretending coverage was complete)",
+    "All [N] citations in synthesis resolve to sources[] indices",
+    "v1.meta.json written even for shallow / 1-source case"
+  ],
+  "refactor_delta": {
+    "scope": "Small",
+    "current_state": "Researcher spec is the contract layer; the 12-step process is documented in skills/00_research/SKILL.md.",
+    "target_state": "Process detail continues to live in skills/00_research/. This spec stays as the contract + hard rules + tool allowlist.",
+    "concrete_steps": [
+      "Keep the 12-step process in skills/00_research/SKILL.md (already moved).",
+      "Keep handoff-summary + post-write ping in this spec's Communication section.",
+      "Add an explicit Tool allowlist current vs target section and document the proposed tightening.",
+      "Implement agents/researcher/.claude/settings.json to enforce the allowlist."
+    ]
+  }
+}

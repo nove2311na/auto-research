@@ -1,0 +1,14 @@
+{
+  "_approach": "C: quote-first",
+  "_source": "skill spec § Process step 7",
+  "entities": [
+    {"name": "Surface code", "type": "concept", "mentions": 1, "aliases": []}
+  ],
+  "facts": [],
+  "quotes": [
+    {"text": "Surface codes remain the dominant modality, with logical qubit counts crossing 1000 in late 2025", "attribution": "synthesis of the QEC 2026 state of the field"},
+    {"text": "Google demonstrated below-threshold operation on a 72-qubit Sycamore-class device", "attribution": "Google announcement (paraphrased)"},
+    {"text": "the threshold is approximately 1%", "attribution": "surface code theory (Fowler et al.)"},
+    {"text": "fault-tolerant quantum computing will require approximately 1 million physical qubits per logical qubit, down from earlier estimates of 10 million", "attribution": "industry consensus (no specific attribution)"}
+  ]
+}

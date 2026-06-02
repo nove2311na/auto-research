@@ -1,0 +1,100 @@
+{
+  "stage_id": "02_extract",
+  "owning_agent": "extractor",
+  "schema_ref": "schemas/02_extract.json",
+  "output_format": "json",
+  "max_options": 3,
+  "max_retries": 3,
+  "antonio_gulli_patterns": ["Ch. 3 Parallelization", "Ch. 5 Tool Use", "Ch. 10 MCP"],
+  "claude_code_book_chapters": ["Ch. 5 MCP", "Ch. 8 Prompt Craft"],
+  "helpers": {
+    "fixtures":   ".claude/skills/02-extract/fixtures/",
+    "templates":  ".claude/skills/02-extract/templates/",
+    "scripts":    ".claude/skills/02-extract/scripts/",
+    "examples":   ".claude/skills/02-extract/examples/",
+    "rubric":     ".claude/skills/02-extract/rubric.md",
+    "eval_cases": ".claude/skills/02-extract/eval-cases.md"
+  },
+  "input_schema": {
+    "fields": [
+      {"name": "input_id", "type": "string (8 hex)", "required": true, "source": "hcom message from @orch"},
+      {"name": "01_ingest/v1.txt", "type": "file path", "required": true, "source": "upstream artifact (read end-to-end)"}
+    ],
+    "hcom_message_example": "hcom send --name <sender> \"@research-pipeline-claude-3 extract: <input_id>; input=outputs/<input_id>/01_ingest/v1.txt; schema=schemas/02_extract.json; produce options/A,B,C then report to @research-pipeline-claude-6\""
+  },
+  "process": [
+    {"step": 1, "type": "llm", "description": "Read 01_ingest/v1.txt end-to-end."},
+    {"step": 2, "type": "llm", "description": "Determine option count from pipeline.json -> 02_extract.max_options (default 3)."},
+    {"step": 3, "type": "llm", "description": "Option A (entity-first): maximize entity coverage. People/orgs/concepts first, then facts and quotes that mention them. Compose extraction JSON."},
+    {"step": 4, "type": "deterministic", "description": "Write options/A/v1.json + options/A/v1.meta.json via write_artifact + write_meta."},
+    {"step": 5, "type": "llm", "description": "Option B (fact-first): maximize fact coverage. Atomic claims with evidence quotes, then entities and quotes. Compose extraction JSON."},
+    {"step": 6, "type": "deterministic", "description": "Write options/B/v1.json + options/B/v1.meta.json."},
+    {"step": 7, "type": "llm", "description": "Option C (quote-first, if max_options >= 3): maximize verbatim quotes with attribution. Compose extraction JSON."},
+    {"step": 8, "type": "deterministic", "description": "Write options/C/v1.json + options/C/v1.meta.json."},
+    {"step": 9, "type": "deterministic", "description": "Send all paths to @critic with the request: 'score each option 0-1, pick the best, copy to stage root as v1.json, then run validator on the winner'."},
+    {"step": 10, "type": "deterministic", "description": "Sit idle until @orch responds."}
+  ],
+  "output_schema": {
+    "required_fields": ["entities", "facts", "quotes"],
+    "template": {
+      "entities": [{"name": "<name>", "type": "<person|org|place|concept|product|event|other>", "mentions": 0, "aliases": []}],
+      "facts": [{"claim": "<atomic claim, 1 sentence>", "evidence_quote": "<short quote from source>", "confidence": "<high|medium|low>"}],
+      "quotes": [{"text": "<verbatim quote>", "attribution": "<who said it>"}]
+    }
+  },
+  "examples": [
+    {
+      "source": "scripts/smoke_v2.py:74-86",
+      "lifted_from": "single-winner variant (the actual run produces 3 options)",
+      "artifact": {
+        "entities": [
+          {"name": "Google", "type": "org", "mentions": 4},
+          {"name": "IBM", "type": "org", "mentions": 3},
+          {"name": "Surface code", "type": "concept", "mentions": 5}
+        ],
+        "facts": [
+          {"claim": "Surface codes have ~1% threshold", "evidence_quote": "high threshold (~1%)", "confidence": "high"},
+          {"claim": "1000+ logical qubits demonstrated in 2026", "evidence_quote": "logical qubit counts crossed 1000", "confidence": "high"}
+        ],
+        "quotes": []
+      }
+    }
+  ],
+  "self_check": [
+    {"step": 1, "check": "Exactly pipeline.json#02_extract.max_options files written (1, 2, or 3)"},
+    {"step": 2, "check": "Each option matches schemas/02_extract.json (entities/facts/quotes arrays present)"},
+    {"step": 3, "check": "Entities quality: each entity has name (minLength 1), type (enum), mentions (integer >=0); no 'various people' vague entities"},
+    {"step": 4, "check": "Facts quality: each fact has claim (atomic 1-sentence) + evidence_quote (short quote); no unsourced claims"},
+    {"step": 5, "check": "Quotes quality: each quote is verbatim with attribution; no paraphrasing"},
+    {"step": 6, "check": "3 options visibly different (different prioritization, not just renamed)"},
+    {"step": 7, "check": "No stage-root v1.json or v1.meta.json written by this agent"},
+    {"step": 8, "check": "Each option has a sibling v1.meta.json with validation: pending and producer: 'extractor'"},
+    {"step": 9, "check": "All option paths sent to @critic"}
+  ],
+  "validation": {
+    "check_refs": ["validation/02-post-execution-completeness.md", "validation/03-llm-judge.md"],
+    "threshold": 0.7,
+    "common_failures": [
+      {"failure": "entities[].type not in enum", "fix": "Re-classify (e.g. 'AI' -> concept, not custom)"},
+      {"failure": "facts[].evidence_quote empty or paraphrased", "fix": "Copy a verbatim span from the source"},
+      {"failure": "3 options look the same", "fix": "Regenerate; option A entity-dominant, B fact-dominant, C quote-dominant"},
+      {"failure": "Winner selection contested (LLM-judge tied)", "fix": "Critic tiebreaks: highest schema+completeness score wins; document in feedback"}
+    ]
+  },
+  "failure_modes": [
+    {"name": "Input text is empty", "handling": "Write all options as {entities:[], facts:[], quotes:[]} with meta.feedback='empty input'. Critic will fail; orchestrator halts."},
+    {"name": "Input is non-textual (numbers, code, etc.)", "handling": "Extract what's there; don't try to invent entities."},
+    {"name": "Input is too long (>50K tokens)", "handling": "Focus on the first 50K and note in meta.feedback."}
+  ],
+  "refactor_delta": {
+    "scope": "Medium",
+    "current_state": "3-approach detail (A/B/C) in this spec's Process section. scripts/smoke_v2.py only exercises a single 'winner' variant, not the 3-option case.",
+    "target_state": "A 3-option smoke variant exercises pick_winner end-to-end.",
+    "concrete_steps": [
+      "Keep the 3 approaches in this spec's Process section (already moved).",
+      "Add a 3-option variant to scripts/smoke_v2.py (build options/A/v1.json, B/v1.json, C/v1.json with deliberately different shapes; assert pick_winner picks correctly).",
+      "Add minItems: 1 to schemas/02_extract.json#entities (currently 0).",
+      "Add minItems: 1 to schemas/02_extract.json#facts similarly."
+    ]
+  }
+}

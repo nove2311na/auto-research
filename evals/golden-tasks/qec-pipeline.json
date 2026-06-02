@@ -1,0 +1,17 @@
+{
+  "id": "golden-qec-pipeline",
+  "topic": "Quantum error correction 2026",
+  "depth": "medium",
+  "input_id": "goldqec001",
+  "expected_outputs": {
+    "00_research/v1.json":     {"min_sources": 3, "min_key_findings": 3},
+    "01_ingest/v1.txt":        {"min_length": 1000},
+    "02_extract/options/A/v1.json": {"min_entities": 3, "min_facts": 5},
+    "02_extract/v1.json":      {"min_entities": 3, "min_facts": 5, "is_winner": true},
+    "03_analyze/v1.json":      {"min_themes": 2, "min_gaps": 1, "max_contradictions": 3},
+    "04_synthesize/v1.json":   {"min_diagrams": 2, "min_theses": 2},
+    "05_format/v1.json":       {"has_summary": true, "has_diagrams": true, "has_theses": true},
+    "05_format/v1.md":         {"min_lines": 50}
+  },
+  "min_rubric_score": 0.8
+}

@@ -1,0 +1,5 @@
+{
+  "_source": "scripts/smoke_v2.py:108-132",
+  "_lifted_from": "smokev200",
+  "artifact": "see fixtures/expected_output.json (the canonical QEC synthesis)"
+}

@@ -1,0 +1,4 @@
+{
+  "_ref": "outputs/<input_id>/02_extract/v1.json",
+  "_note": "in tests, the analyzer reads the actual stage output; this fixture is the minimal expected shape"
+}

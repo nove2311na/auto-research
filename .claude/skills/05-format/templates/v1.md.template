@@ -1,0 +1,51 @@
+# Research Report: <title>
+
+## Summary
+
+<summary>
+
+## Key Insights
+
+- <insight 1>
+- <insight 2>
+- <insight 3>
+
+## Entities
+
+- **<name>** (<type>, <mentions> mentions)
+
+## Facts
+
+- <claim> — _<source>_
+
+## Analysis
+
+- **<theme>** — <description>
+- Gap: <gap description>
+- Contradiction: <contradiction explanation>
+
+## Diagrams
+
+### <diagram title>
+
+```mermaid
+<diagram code WITHOUT the wrapper>
+```
+
+## Theses
+
+### Thesis N: <statement>
+
+**Confidence:** <high|medium|low>
+
+**Evidence:**
+- <evidence 1>
+- <evidence 2>
+
+**Counterarguments:**
+- <counterargument 1>
+
+## References
+
+- <ref 1>
+- <ref 2>

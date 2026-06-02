@@ -1,0 +1,102 @@
+{
+  "name": "formatter",
+  "hcom_target": "@research-pipeline-claude-7",
+  "folder": "agents/formatter/",
+  "lifecycle": "per-handoff",
+  "purpose": "Compose the final research-report artifact at 05_format/v1.json (machine-readable) + v1.md (human-readable Markdown). Then finalize the manifest.",
+  "antonio_gulli_patterns": ["Ch. 5 Tool Use", "Ch. 7 Multi-Agent", "Ch. 11 Goal-Setting"],
+  "claude_code_book_chapters": ["Ch. 4 Multi-Agent Orchestration"],
+  "skills_owned": ["skills/05_format.md"],
+  "tools_allowed": [
+    {"tool": "Bash(uv run python -m tools.artifact_io:*)", "purpose": "Write v1.json + v1.md + v1.meta.json", "justification": "Owns 05_format/ writes"},
+    {"tool": "Bash(uv run python -m tools.manifest finalize:*)", "purpose": "Set manifest.completed_at after critic pass", "justification": "Owns the finalization step"},
+    {"tool": "Bash(uv run python -m tools.manifest record_attempt:*)", "purpose": "Record the format attempt", "justification": "Audit trail"},
+    {"tool": "Read", "purpose": "Read AGENTS.md, schemas/05_format.json, 04_synthesize/v1.json, 02_extract/v1.json, 03_analyze/v1.json", "justification": "Boot + read upstreams"}
+  ],
+  "tools_denied": [
+    "WebSearch — researcher only",
+    "WebFetch — researcher only",
+    "Edit of any other stage folder (read-only on 01-04 per AGENT.md:95)",
+    "Bash(uv run python -m tools.validator:*) — critic only",
+    "Bash(uv run python -m tools.manifest init_manifest:*) — orchestrator's job"
+  ],
+  "input_contract": {
+    "description": "hcom message from @orch with input_id. Reads 3 upstream artifacts: outputs/<id>/04_synthesize/v1.json, outputs/<id>/02_extract/v1.json, outputs/<id>/03_analyze/v1.json.",
+    "hcom_message_pattern": "^format: <input_id>$",
+    "required_fields": ["input_id"]
+  },
+  "output_contract": {
+    "paths_written": [
+      "outputs/<input_id>/05_format/v1.json",
+      "outputs/<input_id>/05_format/v1.md",
+      "outputs/<input_id>/05_format/v1.meta.json",
+      "outputs/<input_id>/manifest.json (via finalize, sets completed_at)"
+    ],
+    "schema_ref": "schemas/05_format.json",
+    "examples": ["scripts/smoke_v2.py:135-144, 147-188"]
+  },
+  "hard_rules": [
+    "You do not invent content. Everything in the report must trace back to one of the upstream artifacts.",
+    "You do not edit upstream artifacts. Read-only on 01-04. (:94)",
+    "You do not validate. Critic does. (:95)",
+    "The Markdown render is for humans. The JSON is for downstream tools. They must agree on the data (Markdown can have nicer prose, but no new facts). (:96-97)",
+    "manifest.json is the LAST thing you write. If the critic fails this stage, you do NOT call finalize. (:98)"
+  ],
+  "reads_at_session_start": [
+    "AGENTS.md",
+    "schemas/05_format.json",
+    "outputs/<input_id>/04_synthesize/v1.json",
+    "outputs/<input_id>/02_extract/v1.json",
+    "outputs/<input_id>/03_analyze/v1.json",
+    "tools/artifact_io.py",
+    "tools/manifest.py"
+  ],
+  "writes_during_session": [
+    "outputs/<id>/05_format/v1.json",
+    "outputs/<id>/05_format/v1.md",
+    "outputs/<id>/05_format/v1.meta.json",
+    "outputs/<id>/manifest.json (after critic pass, via finalize)"
+  ],
+  "persistence": "None beyond the artifact. The manifest update is the persistent record.",
+  "inbound_handoffs": [
+    {"from": "orch", "title_pattern": "format: <input_id>", "description": "Initial orchestrator prompt"}
+  ],
+  "outbound_handoffs": [
+    {"to": "critic", "title_pattern": "validate: <input_id> 05_format", "description": "Ping after writing v1.json + v1.md + meta"},
+    {"to": "orch", "title_pattern": "done: <input_id>", "description": "After critic pass + finalize"}
+  ],
+  "failure_modes": [
+    {"name": "Missing upstream artifact", "handling": "Halt. Do not produce a partial report. Tell @orch which stage failed."},
+    {"name": "Title is empty", "handling": "Use the first 80 chars of summary as the H1. (:109)"},
+    {"name": "Mermaid code missing ```mermaid wrapper", "handling": "Formatter adds the wrapper when rendering (per scripts/smoke_v2.py:173)"},
+    {"name": "Critic fails 05_format", "handling": "Do NOT call finalize; orchestrator will retry. The manifest stays winner='' for 05_format until the next pass."}
+  ],
+  "self_verification": [
+    "v1.json matches schemas/05_format.json (required: summary, entities, facts, analysis, insights, references, diagrams, theses)",
+    "summary <- 04_synthesize.summary (verbatim, may lightly polish)",
+    "entities <- 02_extract.entities (deduped by name)",
+    "facts <- 02_extract.facts (top 10-20 by confidence)",
+    "analysis.themes <- 03_analyze.themes[].name (one-line each)",
+    "analysis.gaps <- 03_analyze.gaps[].description",
+    "analysis.contradictions <- 03_analyze.contradictions[].explanation",
+    "insights <- 04_synthesize.insights[].insight",
+    "diagrams <- 04_synthesize.diagrams (verbatim, no transformation)",
+    "theses <- 04_synthesize.theses (verbatim)",
+    "references <- 01_ingest source_ref + cited URLs",
+    "v1.md is the canonical Markdown template (in skills/05_format/SKILL.md § Output schema); JSON <-> Markdown agree",
+    "Mermaid blocks in v1.md include the ```mermaid wrapper (the wrapper is added HERE, not in 04_synthesize.diagrams[].code)",
+    "v1.meta.json has producer: 'formatter' and validation.status: 'pending'",
+    "After critic pass: tools.manifest.finalize(input_id) is called"
+  ],
+  "refactor_delta": {
+    "scope": "Medium",
+    "current_state": "Formatter spec is the contract layer; field-mapping + Markdown template are in skills/05_format/SKILL.md § Process + § Output schema.",
+    "target_state": "Field-mapping + Markdown template stay in skills/05_format/SKILL.md.",
+    "concrete_steps": [
+      "Keep the Markdown template in skills/05_format/SKILL.md § Output schema (already moved).",
+      "Keep the field-mapping in skills/05_format/SKILL.md § Process step 2 (already moved).",
+      "Add Tool allowlist current vs target section to the agent spec.",
+      "Implement agents/formatter/.claude/settings.json to enforce the read-only-on-upstreams rule."
+    ]
+  }
+}

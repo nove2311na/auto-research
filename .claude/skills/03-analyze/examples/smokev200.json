@@ -1,0 +1,12 @@
+{
+  "_source": "scripts/smoke_v2.py:89-105",
+  "_lifted_from": "smokev200",
+  "artifact": {
+    "themes": [
+      {"name": "surface code dominance", "description": "Surface codes are the de facto industrial QEC", "supporting_facts": ["Surface codes have ~1% threshold"]},
+      {"name": "threshold achievement", "description": "Multiple platforms crossed below-threshold operation", "supporting_facts": ["1000+ logical qubits demonstrated in 2026"]}
+    ],
+    "gaps": [{"description": "Long-term stability of logical qubits", "what_would_fill_it": "Multi-week coherence measurements on hardware"}],
+    "contradictions": [{"claim_a": "Academic literature claims overhead reduction", "claim_b": "Industrial practice still uses 1000:1 physical-to-logical ratio", "explanation": "Decoding overhead and syndrome measurement costs may offset theoretical savings"}]
+  }
+}

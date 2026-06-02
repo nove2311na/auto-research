@@ -1,0 +1,25 @@
+{
+  "input_id": "<8-hex-from-sha1-of-input_ref>",
+  "stage": "<NN_name>",
+  "version": 1,
+  "parent_ref": "<upstream-artifact-path-or-null>",
+  "producer": "<agent-name>",
+  "produced_at": "<iso8601>",
+  "validation": {
+    "status": "pending",
+    "validator": null,
+    "validated_at": null,
+    "score": null,
+    "feedback": null,
+    "checks": {
+      "schema": "skip",
+      "completeness": "skip",
+      "llm_judge": "skip"
+    }
+  },
+  "metadata": {
+    "research_ref": "<00_research/v1.json-or-null>",
+    "input_ref": "<original-input-ref>",
+    "fetched_at": "<iso8601>"
+  }
+}

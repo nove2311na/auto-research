@@ -1,0 +1,5 @@
+{
+  "_source": "scripts/smoke_v2.py:48-71",
+  "_lifted_from": "smokev200 run",
+  "artifact": "outputs/smokev200/01_ingest/v1.txt (the canonical QEC dossier with ## Research Context)"
+}

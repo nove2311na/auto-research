@@ -1,0 +1,21 @@
+{
+  "input_id": "8f3a2b1c",
+  "stage": "01_ingest",
+  "version": 1,
+  "parent_ref": null,
+  "producer": "ingestor",
+  "produced_at": "2026-06-02T12:00:00Z",
+  "validation": {
+    "status": "pending",
+    "validator": null,
+    "validated_at": null,
+    "score": null,
+    "feedback": null,
+    "checks": {"schema": "skip", "completeness": "skip", "llm_judge": "skip"}
+  },
+  "metadata": {
+    "research_ref": "00_research/v1.json",
+    "input_ref": "_shared/fixtures/qec-input.txt",
+    "fetched_at": "2026-06-02T12:00:00Z"
+  }
+}

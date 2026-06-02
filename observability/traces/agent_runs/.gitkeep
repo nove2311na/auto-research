@@ -1,0 +1,1 @@
+One trace per (run_id, stage, version). Filename: `<run_id>__<stage>__v<N>.json`.

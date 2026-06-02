@@ -61,7 +61,7 @@
   ],
   "critic": {
     "agent": "critic",
-    "checks": ["schema", "completeness", "llm_judge"],
+    "checks": ["schema", "completeness", "llm_judge", "evidence_grounding"],
     "llm_judge_threshold": 0.7
   }
 }

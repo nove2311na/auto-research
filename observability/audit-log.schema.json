@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "audit-log-trace",
+  "description": "Canonical trace schema for observability/traces/. One per stage/version OR one final per run_id.",
+  "type": "object",
+  "required": ["run_id", "task", "lead_agent", "final_status"],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "pattern": "^run-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{3,}$"
+    },
+    "task": {"type": "string", "minLength": 1},
+    "lead_agent": {
+      "type": "string",
+      "enum": ["orchestrator", "researcher", "ingestor", "extractor", "analyzer", "synthesizer", "critic", "formatter"]
+    },
+    "agents_called": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["orchestrator", "researcher", "ingestor", "extractor", "analyzer", "synthesizer", "critic", "formatter"]
+      }
+    },
+    "tools_used": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "memory_read": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "memory_write": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_completeness", "plan_review", "json_schema", "completeness",
+        "llm_judge", "path_safety", "manifest_consistency"
+      ],
+      "properties": {
+        "input_completeness":     {"type": "string", "enum": ["pass", "fail", "skip"]},
+        "plan_review":            {"type": "string", "enum": ["pass", "fail", "skip"]},
+        "json_schema":            {"type": "string", "enum": ["pass", "fail", "skip"]},
+        "completeness":           {"type": "string", "enum": ["pass", "fail", "skip"]},
+        "llm_judge":              {"type": "string", "enum": ["pass", "fail", "skip"]},
+        "path_safety":            {"type": "string", "enum": ["pass", "fail", "skip"]},
+        "manifest_consistency":   {"type": "string", "enum": ["pass", "fail", "skip"]}
+      }
+    },
+    "approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["at", "decision", "by"],
+        "properties": {
+          "at": {"type": "string", "format": "date-time"},
+          "decision": {"type": "string", "minLength": 1},
+          "by": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "final_status": {
+      "type": "string",
+      "enum": ["pass", "warn", "fail", "blocked"]
+    },
+    "reason": {"type": "string"}
+  }
+}

@@ -8,7 +8,7 @@
       {
         "hooks": [
           {
-            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd notify || exit 0'",
+            "command": "python .claude/hooks/hcom_hook.py notify",
             "type": "command"
           }
         ]
@@ -18,7 +18,7 @@
       {
         "hooks": [
           {
-            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd permission-request || exit 0'",
+            "command": "python .claude/hooks/hcom_hook.py permission-request",
             "type": "command"
           }
         ]
@@ -28,9 +28,19 @@
       {
         "hooks": [
           {
-            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd post || exit 0'",
+            "command": "python .claude/hooks/hcom_hook.py post",
             "timeout": 86400,
             "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "command": "python .claude/hooks/PostToolUse.py",
+            "type": "command",
+            "timeout": 5000
           }
         ]
       }
@@ -39,18 +49,28 @@
       {
         "hooks": [
           {
-            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd pre || exit 0'",
+            "command": "python .claude/hooks/hcom_hook.py pre",
             "type": "command"
           }
         ],
         "matcher": "Bash|Task|Write|Edit"
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "command": "python .claude/hooks/PreToolUse.py",
+            "type": "command",
+            "timeout": 5000
+          }
+        ]
       }
     ],
     "SessionEnd": [
       {
         "hooks": [
           {
-            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd sessionend || exit 0'",
+            "command": "python .claude/hooks/hcom_hook.py sessionend",
             "type": "command"
           }
         ]
@@ -60,7 +80,16 @@
       {
         "hooks": [
           {
-            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd sessionstart || exit 0'",
+            "command": "python .claude/hooks/hcom_hook.py sessionstart",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "command": "python .claude/hooks/activate_caveman.py",
             "type": "command"
           }
         ]
@@ -70,7 +99,7 @@
       {
         "hooks": [
           {
-            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd poll || exit 0'",
+            "command": "python .claude/hooks/hcom_hook.py poll",
             "timeout": 86400,
             "type": "command"
           }
@@ -81,7 +110,7 @@
       {
         "hooks": [
           {
-            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd subagent-start || exit 0'",
+            "command": "python .claude/hooks/hcom_hook.py subagent-start",
             "type": "command"
           }
         ]
@@ -91,7 +120,7 @@
       {
         "hooks": [
           {
-            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd subagent-stop || exit 0'",
+            "command": "python .claude/hooks/hcom_hook.py subagent-stop",
             "timeout": 86400,
             "type": "command"
           }
@@ -102,7 +131,7 @@
       {
         "hooks": [
           {
-            "command": "sh -c 'cmd=${HCOM:-hcom}; command -v \"${cmd%% *}\" >/dev/null 2>&1 && exec $cmd userpromptsubmit || exit 0'",
+            "command": "python .claude/hooks/hcom_hook.py userpromptsubmit",
             "type": "command"
           }
         ]
@@ -111,25 +140,48 @@
   },
   "permissions": {
     "allow": [
-      "Bash(hcom send:*)",
-      "Bash(hcom start:*)",
-      "Bash(hcom help:*)",
-      "Bash(hcom --help)",
-      "Bash(hcom -h)",
-      "Bash(hcom list:*)",
-      "Bash(hcom events:*)",
-      "Bash(hcom listen:*)",
-      "Bash(hcom relay:*)",
-      "Bash(hcom config:*)",
-      "Bash(hcom transcript:*)",
-      "Bash(hcom archive:*)",
-      "Bash(hcom bundle:*)",
-      "Bash(hcom status:*)",
       "Bash(hcom term:*)",
       "Bash(hcom hooks:*)",
+      "Bash(uv run python -m tools.artifact_io:*)",
+      "Bash(uv run python -m tools.validator:*)",
+      "Bash(uv run python -m tools.manifest:*)",
+      "Bash(uv run python -m tools.fetch_input:*)",
+      "Bash(uv run python -m tools.spec_io:*)",
+      "Bash(uv run python -m tools.validate_specs:*)",
+      "Bash(hcom send:*)",
+      "Bash(uvx hcom send:*)",
+      "Bash(hcom start:*)",
+      "Bash(uvx hcom start:*)",
+      "Bash(hcom help:*)",
+      "Bash(uvx hcom help:*)",
+      "Bash(hcom --help)",
+      "Bash(uvx hcom --help)",
+      "Bash(hcom -h)",
+      "Bash(uvx hcom -h)",
+      "Bash(hcom list:*)",
+      "Bash(uvx hcom list:*)",
+      "Bash(hcom events:*)",
+      "Bash(uvx hcom events:*)",
+      "Bash(hcom listen:*)",
+      "Bash(uvx hcom listen:*)",
+      "Bash(hcom relay:*)",
+      "Bash(uvx hcom relay:*)",
+      "Bash(hcom config:*)",
+      "Bash(uvx hcom config:*)",
+      "Bash(hcom transcript:*)",
+      "Bash(uvx hcom transcript:*)",
+      "Bash(hcom archive:*)",
+      "Bash(uvx hcom archive:*)",
+      "Bash(hcom bundle:*)",
+      "Bash(uvx hcom bundle:*)",
+      "Bash(hcom status:*)",
+      "Bash(uvx hcom status:*)",
       "Bash(hcom --version)",
+      "Bash(uvx hcom --version)",
       "Bash(hcom -v)",
-      "Bash(hcom --new-terminal)"
+      "Bash(uvx hcom -v)",
+      "Bash(hcom --new-terminal)",
+      "Bash(uvx hcom --new-terminal)"
     ]
   },
   "rules": [

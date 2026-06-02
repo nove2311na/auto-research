@@ -1,0 +1,8 @@
+{
+  "_approach": "C: quote-first",
+  "entities": [],
+  "facts": [],
+  "quotes": [
+    {"text": "<verbatim quote from source>", "attribution": "<who said it>"}
+  ]
+}

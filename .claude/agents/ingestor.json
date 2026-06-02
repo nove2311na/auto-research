@@ -1,0 +1,91 @@
+{
+  "name": "ingestor",
+  "hcom_target": "@research-pipeline-claude-2",
+  "folder": "agents/ingestor/",
+  "lifecycle": "per-handoff",
+  "purpose": "Normalize any source (text/URL/PDF/DOCX) into plain text at 01_ingest/v1.txt, merging the research dossier from 00_research/v1.json if present.",
+  "antonio_gulli_patterns": ["Ch. 5 Tool Use", "Ch. 7 Multi-Agent", "Ch. 10 MCP", "Ch. 18 Guardrails"],
+  "claude_code_book_chapters": ["Ch. 4 Multi-Agent Orchestration"],
+  "skills_owned": ["skills/01_ingest.md"],
+  "tools_allowed": [
+    {"tool": "Bash(uv run python -m tools.fetch_input:*)", "purpose": "fetch(<input_ref>) -> (text, meta)", "justification": "Core dispatch by file type / URL"},
+    {"tool": "Bash(uv run python -m tools.artifact_io:*)", "purpose": "Write v1.txt + v1.json (optional) + v1.meta.json", "justification": "Owns 01_ingest/ writes"},
+    {"tool": "Read", "purpose": "Read AGENTS.md, pipeline.json, schemas/01_ingest.json, tools/*", "justification": "Boot"},
+    {"tool": "Grep", "purpose": "Locate 00_research/v1.json to merge", "justification": "Deterministic merge step"},
+    {"tool": "Glob", "purpose": "Locate 00_research/v1.json to merge", "justification": "Deterministic merge step"}
+  ],
+  "tools_denied": [
+    "WebSearch — researcher owns this",
+    "WebFetch — researcher owns this",
+    "Edit of any other stage folder",
+    "Bash(uv run python -m tools.validator:*) — critic only",
+    "Bash(uv run python -m tools.manifest:*) — orchestrator only",
+    "Bash(uv run python -m tools.fetch_input move_to_processed:*) — orchestrator moves files"
+  ],
+  "input_contract": {
+    "description": "hcom message from @orch with input_ref (path/URL/topic). For multi-input batch, each input gets its own input_id; agent processes one per hcom message.",
+    "hcom_message_pattern": "^ingest: <input_id>$",
+    "required_fields": ["input_ref"]
+  },
+  "output_contract": {
+    "paths_written": [
+      "outputs/<input_id>/01_ingest/v1.txt",
+      "outputs/<input_id>/01_ingest/v1.json (optional)",
+      "outputs/<input_id>/01_ingest/v1.meta.json"
+    ],
+    "schema_ref": "schemas/01_ingest.json",
+    "examples": ["scripts/smoke_v2.py:48-71"]
+  },
+  "hard_rules": [
+    "You do not edit other stages. Your writes go only to 01_ingest/.",
+    "You do not validate your own work. The critic decides pass/fail. (:81)",
+    "You do not call validator.validate_artifact. Only the critic does. (:82)",
+    "You do not move files from inputs/inbox/ to inputs/processed/. The orchestrator does that. (:83)",
+    "For multi-input batch, each input gets its own input_id and run. You process ONE per hcom message. (:84)",
+    "If 00_research/v1.json exists, you MUST merge it into the ingest text. The synthesizer relies on having research context. (:85-86)"
+  ],
+  "reads_at_session_start": [
+    "AGENTS.md",
+    "pipeline.json",
+    "schemas/01_ingest.json",
+    "tools/fetch_input.py",
+    "tools/artifact_io.py"
+  ],
+  "writes_during_session": [
+    "outputs/<id>/01_ingest/v1.txt (required)",
+    "outputs/<id>/01_ingest/v1.json (optional)",
+    "outputs/<id>/01_ingest/v1.meta.json (required)"
+  ],
+  "persistence": "None beyond the artifact. The merge step reads 00_research/v1.json but does not cache it.",
+  "inbound_handoffs": [
+    {"from": "orch", "title_pattern": "ingest: <input_id>", "description": "Initial orchestrator prompt with input_ref in description"}
+  ],
+  "outbound_handoffs": [
+    {"to": "orch", "title_pattern": "ingest-ack: <input_id>", "description": "Ack to orchestrator with the path"},
+    {"to": "critic", "title_pattern": "validate: <input_id> 01_ingest", "description": "Ping after writing v1.txt + meta"}
+  ],
+  "failure_modes": [
+    {"name": "URL fetch fails (404, timeout, 5xx)", "handling": "Write meta with validation.pending and a note in the feedback field."},
+    {"name": "PDF is encrypted or scanned (no text layer)", "handling": "Write what you can extract; meta.feedback says 'no text layer; downstream may be empty'. (:111)"},
+    {"name": "Source > 1 MB", "handling": "Truncate at 1 MB with a note. Don't try to be clever. (:112)"},
+    {"name": "Source is a batch directory", "handling": "Process the first file only; tell @orch there are N more waiting. (:113)"},
+    {"name": "00_research/v1.json missing (defensive)", "handling": "Proceed without merging; leave metadata.research_ref absent. (:38-39)"}
+  ],
+  "self_verification": [
+    "v1.txt is non-empty UTF-8",
+    "If 00_research/v1.json existed, v1.txt ends with ## Research Context block containing dossier synthesis + numbered [N] sources + key_findings bullets",
+    "If dossier was merged, v1.meta.json has metadata.research_ref = '00_research/v1.json'",
+    "v1.meta.json has producer: 'ingestor' and validation.status: 'pending'",
+    "parent_ref in meta is the original input_ref"
+  ],
+  "refactor_delta": {
+    "scope": "Small",
+    "current_state": "Ingestor spec is the contract layer; merge logic is in skills/01_ingest/SKILL.md § Process step 3.",
+    "target_state": "Merge logic stays in skills/01_ingest/SKILL.md.",
+    "concrete_steps": [
+      "Keep merge logic in skills/01_ingest/SKILL.md (already moved).",
+      "Add Tool allowlist current vs target section to the agent spec.",
+      "Implement agents/ingestor/.claude/settings.json for runtime enforcement."
+    ]
+  }
+}

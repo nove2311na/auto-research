@@ -1,0 +1,15 @@
+{
+  "title": "<title or first 80 chars of summary>",
+  "summary": "<verbatim from 04_synthesize.summary, may lightly polish>",
+  "entities": "<deduped from 02_extract.entities by name>",
+  "facts": "<top 10-20 from 02_extract.facts by confidence>",
+  "analysis": {
+    "themes": "<one-line from 03_analyze.themes[].name + description>",
+    "gaps": "<from 03_analyze.gaps[].description>",
+    "contradictions": "<from 03_analyze.contradictions[].explanation>"
+  },
+  "insights": "<from 04_synthesize.insights[].insight>",
+  "references": "<01_ingest source_ref + cited URLs>",
+  "diagrams": "<verbatim from 04_synthesize.diagrams>",
+  "theses": "<verbatim from 04_synthesize.theses>"
+}

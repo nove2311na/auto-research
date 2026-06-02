@@ -1,0 +1,126 @@
+{
+  "stage_id": "05_format",
+  "owning_agent": "formatter",
+  "schema_ref": "schemas/05_format.json",
+  "output_format": "json+md",
+  "max_options": 1,
+  "max_retries": 3,
+  "antonio_gulli_patterns": ["Ch. 5 Tool Use", "Ch. 11 Goal-Setting"],
+  "claude_code_book_chapters": ["Ch. 4 Multi-Agent Orchestration"],
+  "helpers": {
+    "fixtures":   ".claude/skills/05-format/fixtures/",
+    "templates":  ".claude/skills/05-format/templates/",
+    "scripts":    ".claude/skills/05-format/scripts/",
+    "examples":   ".claude/skills/05-format/examples/",
+    "rubric":     ".claude/skills/05-format/rubric.md",
+    "eval_cases": ".claude/skills/05-format/eval-cases.md"
+  },
+  "input_schema": {
+    "fields": [
+      {"name": "input_id", "type": "string (8 hex)", "required": true, "source": "hcom message from @orch"},
+      {"name": "04_synthesize/v1.json", "type": "file path", "required": true, "source": "upstream artifact (main input)"},
+      {"name": "02_extract/v1.json", "type": "file path", "required": true, "source": "upstream artifact (for entities + facts)"},
+      {"name": "03_analyze/v1.json", "type": "file path", "required": true, "source": "upstream artifact (for themes/gaps/contradictions)"}
+    ],
+    "hcom_message_example": "hcom send --name <sender> \"@research-pipeline-claude-7 format: <input_id>; input=outputs/<input_id>/04_synthesize/v1.json; schema=schemas/05_format.json; write v1.json + v1.md then report to @research-pipeline-claude-6\""
+  },
+  "process": [
+    {"step": 1, "type": "deterministic", "description": "Read 3 upstream artifacts: 04_synthesize/v1.json, 02_extract/v1.json, 03_analyze/v1.json."},
+    {"step": 2, "type": "llm", "description": "Build v1.json per schemas/05_format.json using the field-mapping. summary <- 04_synthesize.summary; entities <- 02_extract.entities (deduped by name); facts <- 02_extract.facts (top 10-20 by confidence, flatten to {claim, source}); analysis.themes/gaps/contradictions <- 03_analyze (one-line each); insights <- 04_synthesize.insights[].insight (flatten to string[]); diagrams/theses <- 04_synthesize (verbatim); references <- 01_ingest source_ref + cited URLs + 00_research.sources[].url."},
+    {"step": 3, "type": "deterministic", "description": "Write v1.json via write_artifact."},
+    {"step": 4, "type": "llm", "description": "Render v1.md using the Markdown template. The formatter ADDS the ```mermaid wrapper (the 04_synthesize.diagrams[].code does NOT include it)."},
+    {"step": 5, "type": "deterministic", "description": "Write v1.md via write_artifact with ext='md'."},
+    {"step": 6, "type": "deterministic", "description": "Write v1.meta.json with validation: pending."},
+    {"step": 7, "type": "deterministic", "description": "Ping @critic with validate: <input_id> 05_format."},
+    {"step": 8, "type": "deterministic", "description": "If critic passes: call tools.manifest.finalize(input_id). Report done to @orch. If critic fails: do NOT call finalize."}
+  ],
+  "output_schema": {
+    "required_fields": ["summary", "entities", "facts", "analysis", "insights", "references", "diagrams", "theses"],
+    "template": {
+      "summary": "<verbatim from 04_synthesize.summary>",
+      "entities": [{"name": "<deduped entity>", "type": "<type>", "mentions": 0}],
+      "facts": [{"claim": "<from 02_extract.facts.claim>", "source": "<evidence_quote>"}],
+      "analysis": {
+        "themes": [{"name": "<theme name>", "description": "<from 03_analyze>", "supporting_facts": []}],
+        "gaps": [{"description": "<from 03_analyze.gaps.description>", "what_would_fill_it": "<from 03_analyze>"}],
+        "contradictions": [{"claim_a": "<from 03_analyze>", "claim_b": "<from 03_analyze>", "explanation": "<from 03_analyze>"}]
+      },
+      "insights": ["<insight 1>", "<insight 2>"],
+      "references": ["<url 1>", "<url 2>"],
+      "diagrams": [{"type": "flowchart", "title": "...", "code": "<Mermaid WITHOUT ```mermaid wrapper>"}],
+      "theses": [{"statement": "...", "evidence": [], "counterarguments": [], "confidence": "high|medium|low"}]
+    },
+    "markdown_template": "# Research Report: <TOPIC or first 80 chars of summary>\n\n## Summary\n<summary>\n\n## Key Insights\n- <insight 1>\n- <insight 2>\n\n## Entities\n| Name | Type | Mentions |\n|---|---|---|\n| Google | org | 4 |\n\n## Facts\n- <claim> -- _<evidence_quote>_\n\n## Analysis\n### Themes\n- **<theme name>** -- <description>\n### Gaps\n- Gap: <description> (would need: <what_would_fill_it>)\n### Contradictions\n- Contradiction: <claim_a> <-> <claim_b> -- <explanation>\n\n## Diagrams\n### <diagram title>\n<description, if any>\n```mermaid\n<Mermaid code -- formatter adds the wrapper>\n```\n\n## Theses\n### Thesis 1: <statement>\n**Confidence:** <level>\n**Evidence:**\n- <evidence 1>\n**Counterarguments:**\n- <counterargument 1>\n\n## References\n- <url 1>\n- <url 2>"
+  },
+  "examples": [
+    {
+      "source": "scripts/smoke_v2.py:135-144, 147-188",
+      "lifted_from": "real v1.json and render_md() output for the QEC topic",
+      "artifact": {
+        "summary": "Quantum error correction crossed industrial viability in 2026 with 1000+ logical qubits via surface codes, but overhead and decoding latency remain critical bottlenecks.",
+        "entities": [
+          {"name": "Google", "type": "org", "mentions": 4},
+          {"name": "IBM", "type": "org", "mentions": 3},
+          {"name": "Surface code", "type": "concept", "mentions": 5}
+        ],
+        "facts": [
+          {"claim": "Surface codes have ~1% threshold", "source": "high threshold (~1%)"},
+          {"claim": "1000+ logical qubits demonstrated in 2026", "source": "logical qubit counts crossed 1000"}
+        ],
+        "analysis": {
+          "themes": [{"name": "surface code dominance", "description": "Surface codes are the de facto industrial QEC", "supporting_facts": []}],
+          "gaps": [{"description": "Long-term stability of logical qubits", "what_would_fill_it": "Multi-week coherence measurements on hardware"}],
+          "contradictions": [{"claim_a": "Academic literature claims overhead reduction", "claim_b": "Industrial practice still uses 1000:1 physical-to-logical ratio", "explanation": "Decoding overhead and syndrome measurement costs may offset theoretical savings"}]
+        },
+        "insights": ["Surface codes are the de facto standard for 2026 industrial QEC"],
+        "references": ["https://example.com/qec-review-2026", "https://example.com/google-condor-2025"],
+        "diagrams": [{"type": "flowchart", "title": "QEC Pipeline", "code": "flowchart LR\n  A[Physical Qubits] --> B[Surface Code Encoding]\n  B --> C[Stabilizer Measurements]\n  C --> D[Real-time Decoder]\n  D --> E[Logical Qubit]"}],
+        "theses": [{"statement": "Surface codes will dominate industrial QEC for the next 3-5 years", "evidence": ["1000+ logical qubit demonstrations in 2026"], "counterarguments": ["Color codes have better transversal gate sets"], "confidence": "high"}]
+      }
+    }
+  ],
+  "self_check": [
+    {"step": 1, "check": "All required fields in v1.json (summary, entities, facts, analysis, insights, references, diagrams, theses)"},
+    {"step": 2, "check": "Every field in v1.json traces to one of: 04_synthesize, 02_extract, 03_analyze, 01_ingest (no invented content)"},
+    {"step": 3, "check": "entities[] deduplicated by name"},
+    {"step": 4, "check": "facts[] has 10-20 entries (filtered by confidence if more)"},
+    {"step": 5, "check": "insights[] is string[] (not array of objects)"},
+    {"step": 6, "check": "diagrams[] matches 04_synthesize.diagrams[] 1:1 (no transformation)"},
+    {"step": 7, "check": "theses[] matches 04_synthesize.theses[] 1:1"},
+    {"step": 8, "check": "references[] includes 01_ingest.source_ref + all cited URLs"},
+    {"step": 9, "check": "Mermaid wrappers in v1.md (the v1.json code field is unwrapped)"},
+    {"step": 10, "check": "Title H1 = <title or first 80 chars of summary> (per agents/formatter/AGENT.md:109)"},
+    {"step": 11, "check": "JSON <-> Markdown agree; no new facts in Markdown"},
+    {"step": 12, "check": "v1.meta.json has producer: 'formatter', validation.status: 'pending'"},
+    {"step": 13, "check": "@critic pinged with validate: <input_id> 05_format"},
+    {"step": 14, "check": "After critic pass: tools.manifest.finalize(input_id) is called"},
+    {"step": 15, "check": "On critic fail: do NOT call finalize"}
+  ],
+
+  "validation": {
+    "check_refs": ["validation/02-post-execution-completeness.md", "validation/03-llm-judge.md"],
+    "threshold": 0.7,
+    "common_failures": [
+      {"failure": "references empty", "fix": "Add 01_ingest.source_ref and cited URLs"},
+      {"failure": "diagrams missing the Mermaid wrapper in v1.md", "fix": "Wrap with ```mermaid ... ```"},
+      {"failure": "Markdown has new facts not in JSON", "fix": "Remove; only prose polish is allowed"},
+      {"failure": "LLM-judge scores < 0.7", "fix": "Re-check field mapping; ensure every field traces to upstream"}
+    ]
+  },
+  "failure_modes": [
+    {"name": "Missing upstream artifact", "handling": "Halt. Do not produce a partial report. Tell @orch which stage failed."},
+    {"name": "Title is empty", "handling": "Use the first 80 chars of summary as the H1."},
+    {"name": "Mermaid code missing ```mermaid wrapper in v1.md", "handling": "Wrap it. (The v1.json code field is unwrapped; only v1.md wraps.)"},
+    {"name": "Critic fails 05_format", "handling": "Do NOT call finalize; orchestrator will retry. The manifest stays winner='' for 05_format until the next pass."}
+  ],
+  "refactor_delta": {
+    "scope": "Medium",
+    "current_state": "Full Markdown template + field-mapping in this spec's Process + Output schema sections.",
+    "target_state": "All process detail stays in this spec; the formatter's JSON contract is the only agent truth.",
+    "concrete_steps": [
+      "Keep the Markdown template in this spec's Output schema (already moved).",
+      "Keep the field-mapping in this spec's Process step 2 (already moved).",
+      "Consider adding a JSON Schema for v1.md (Mermaid-block count >= 1 if 04_synthesize.diagrams[] is non-empty). New schema-as-lint check."
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "_approach": "B: fact-first",
+  "_source": "skill spec § Process step 5",
+  "entities": [
+    {"name": "Surface code", "type": "concept", "mentions": 1, "aliases": []},
+    {"name": "Logical qubit", "type": "concept", "mentions": 1, "aliases": []}
+  ],
+  "facts": [
+    {"claim": "Surface codes are the de facto industrial QEC", "evidence_quote": "Surface codes remain the dominant modality, with logical qubit counts crossing 1000 in late 2025", "confidence": "high"},
+    {"claim": "Google demonstrated below-threshold operation on 72-qubit Sycamore-class device", "evidence_quote": "Google demonstrated below-threshold operation on a 72-qubit Sycamore-class device", "confidence": "high"},
+    {"claim": "IBM Heron R3 announced 156-qubit error-corrected operation with real-time decoding", "evidence_quote": "IBM's Heron R3 announced 156-qubit error-corrected operation with real-time decoding", "confidence": "high"},
+    {"claim": "Microsoft Majorana-based topological qubit program showed first coherent logical operations in early 2026", "evidence_quote": "Microsoft's Majorana-based topological qubit program showed first coherent logical operations in early 2026", "confidence": "medium"},
+    {"claim": "Fault-tolerant quantum computing will require ~1M physical qubits per logical qubit (10x reduction)", "evidence_quote": "fault-tolerant quantum computing will require approximately 1 million physical qubits per logical qubit, down from earlier estimates of 10 million", "confidence": "high"}
+  ],
+  "quotes": []
+}

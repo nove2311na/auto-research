@@ -1,0 +1,7 @@
+# Scorecards
+
+One JSON file per run_id.
+
+Format: see `evals/README.md` § Scorecard format.
+
+Files are gitignored; produced by `tools/evals/run_eval.py`.

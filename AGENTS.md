@@ -8,7 +8,7 @@ An 8-agent research-pipeline swarm coordinated by `hcom`. One orchestrator + sev
 
 The pipeline is **content → research report**, not training. The 3-file Karpathy pattern (frozen `prepare.py` + mutable `train.py` + `val_bpb` metric) is gone.
 
-## The 6 hard invariants (NEVER break)
+## The 8 hard invariants (NEVER break)
 
 1. **`pipeline.json` is the source of truth.** Stages, schemas, max_retries, max_options, critic threshold — all defined here. To change the pipeline, edit `pipeline.json`, not the agent prompts.
 2. **Every artifact has a sibling `.meta.json`.** `producer`, `validation.status`, `score`, `feedback`. No bare artifacts.
@@ -16,6 +16,8 @@ The pipeline is **content → research report**, not training. The 3-file Karpat
 4. **Versioned, not overwritten.** If a stage runs twice on the same input, you get `v1` + `v2`, never silent overwrite. `pick_winner` only fills the stage-root v1 from an option, never overwrites an option.
 5. **`manifest.json` is the audit trail.** Every pipeline run ends with one. A pipeline is "done" only when all 6 stages have a `winner` AND `completed_at` is set.
 6. **Research stage runs first, always.** Every input goes through `00_research` before `01_ingest`. The ingestor merges the dossier into its output. The orchestrator reads depth from the `--depth` CLI flag (default `medium`) and passes it to the researcher.
+7. **Planning with Files for complex work.** Proactively create and maintain `task_plan.md`, `notes.md`, and the final `[deliverable].md` on disk instead of relying purely on LLM memory.
+8. **Learn from templates, do not improvise.** Before creating any custom code, specialized workflows, or skills (e.g. chart generation, formatting rules), run `npx skills add <owner/repo>` to search, fetch, and learn from reference implementations. Do not write from scratch arbitrarily.
 
 ## The 8 agents and their hcom tags
 
@@ -32,11 +34,19 @@ The pipeline is **content → research report**, not training. The 3-file Karpat
 
 ## Communication protocol
 
-- Orchestrator → researcher: `hcom send @research -- --title "research: <input_id> depth=<X>" --description "..." --files schemas/00_research.json`
-- Orchestrator → stage agent: `hcom send @<tag> -- --title "..." --description "..." --files <upstream-artifact>`
-- Stage agent → critic: `hcom send @critic -- --title "validate: <input_id> <stage>" --description "<path>"`
-- Critic → orchestrator: `hcom send @orch -- --title "verdict: <input_id> <stage>" --description "pass|fail score=N feedback=..."`
+- Use plain hcom messages. Do not use inline bundle flags (`-- --title/--description/--files`) with this hcom version.
+- Orchestrator → researcher: `hcom send --name <sender> "@research-pipeline-claude-8 research: <input_id> depth=<X>; files=schemas/00_research.json"`
+- Orchestrator → stage agent: `hcom send --name <sender> "@research-pipeline-claude-N <stage>: <input_id>; input=<upstream-artifact>"`
+- Stage agent → critic: `hcom send --name <sender> "@research-pipeline-claude-6 validate: <input_id> <stage>; path=<artifact-path>"`
+- Critic → orchestrator: `hcom send --name <sender> "@research-pipeline-claude-1 verdict: <input_id> <stage>; pass|fail score=N feedback=..."`
 - Cross-session memory: `hcom bundle prepare --for self` at the start of any new worker session.
+
+### Prompt Caching Guidelines for Claude (Tối ưu hóa Chi phí & Tốc độ)
+
+Để kích hoạt tính năng Prompt Caching của Claude giúp tiết kiệm 60-90% chi phí token và tăng tốc độ xử lý:
+1. **Đặt Static Context lên đầu ngữ cảnh**: Toàn bộ chỉ dẫn hệ thống (System instructions), file `AGENTS.md`, các file stage schemas và hướng dẫn mẫu tĩnh PHẢI được xếp ở đầu tệp tin đầu vào (prefix).
+2. **Đặt Dynamic Context ở cuối**: Các biến số động như `input_id`, lịch sử chạy thử (`attempt`), số thứ tự lượt chạy và nội dung văn bản cụ thể cần xử lý phải luôn được đặt ở phần cuối cùng của ngữ cảnh.
+3. **Giữ sự ổn định cho phần đầu của prompt**: Tránh đưa bất kỳ tham số động nào (như thời gian chạy hiện tại, ID ngẫu nhiên) chen ngang trước các tệp tin tĩnh lớn. Nếu thay đổi phần đầu, bộ nhớ đệm (cache) của Claude sẽ bị bẻ gãy hoàn toàn (cache bust).
 
 ## File ownership
 
@@ -56,7 +66,8 @@ The pipeline is **content → research report**, not training. The 3-file Karpat
 | `outputs/<id>/00_research/v<N>.meta.json` | producer (initial) → critic (validation) | write |
 | `outputs/<id>/<stage>/options/<X>/v1.*` | extractor | write |
 | `outputs/<id>/manifest.json` | critic (via tools.manifest.record_attempt) + formatter (via tools.manifest.finalize) | write |
-| `tools/artifact_io.py`, `tools/validator.py`, `tools/fetch_input.py`, `tools/manifest.py` | nobody (shared) | read+import |
+| `src/research_pipeline/tools/*`, `src/research_pipeline/gates/*`, `src/research_pipeline/cli/*` | nobody (shared implementation) | read+import |
+| `scripts/*.py`, `tools/*.py`, `gates/*.py` | nobody (compat wrappers) | read+import |
 
 ## The 6 stages (from `pipeline.json`)
 
@@ -89,6 +100,8 @@ python3 -m tools.artifact_io list <input_id> 03_analyze   # list versions of one
 - **Never self-validate.** The critic is the only validator.
 - **Never overwrite.** Always version: v2, v3, ...
 - **Never write a bare artifact.** Every `v1.json` has a sibling `v1.meta.json`.
+- **Always use `planning-with-files` for multi-step work.** Maintain plans on disk.
+- **Always run `npx skills add <owner/repo>` before implementing specialized skills.** Learn from reference implementations, do not write arbitrarily.
 
 ## Reference repos the agent team can pull from (for inspiration on extraction / analysis prompts)
 

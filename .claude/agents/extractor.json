@@ -1,0 +1,87 @@
+{
+  "name": "extractor",
+  "hcom_target": "@research-pipeline-claude-3",
+  "folder": "agents/extractor/",
+  "lifecycle": "per-handoff",
+  "purpose": "Pull structured entities, facts, and quotes out of 01_ingest/v1.txt and produce up to N different extraction approaches (default N=3: A=entity-first, B=fact-first, C=quote-first). The only multi-option stage.",
+  "antonio_gulli_patterns": ["Ch. 3 Parallelization", "Ch. 5 Tool Use", "Ch. 7 Multi-Agent", "Ch. 18 Guardrails"],
+  "claude_code_book_chapters": ["Ch. 4 Multi-Agent Orchestration", "Ch. 8 Prompt Craft"],
+  "skills_owned": ["skills/02_extract.md"],
+  "tools_allowed": [
+    {"tool": "Bash(uv run python -m tools.artifact_io:*)", "purpose": "Write per-option v1.json + v1.meta.json (no stage-root write)", "justification": "Owns 02_extract/options/<X>/ writes"},
+    {"tool": "Read", "purpose": "Read AGENTS.md, pipeline.json, schemas/02_extract.json, outputs/<id>/01_ingest/v1.txt", "justification": "Boot + read upstream"},
+    {"tool": "Grep", "purpose": "Locate 01_ingest/v1.txt", "justification": "Self-check"},
+    {"tool": "Glob", "purpose": "Locate 01_ingest/v1.txt", "justification": "Self-check"}
+  ],
+  "tools_denied": [
+    "WebSearch — researcher owns this",
+    "WebFetch — researcher owns this",
+    "Bash(uv run python -m tools.validator:*) — critic only",
+    "Bash(uv run python -m tools.manifest:*) — critic calls it, not extractor",
+    "Bash(uv run python -m tools.artifact_io pick_winner:*) — critic picks the winner",
+    "Edit of any other stage folder (03_analyze, etc.)",
+    "Write of the stage-root 02_extract/v1.json or v1.meta.json — critic fills these via pick_winner"
+  ],
+  "input_contract": {
+    "description": "hcom message from @orch with input_id. The extractor reads outputs/<input_id>/01_ingest/v1.txt end-to-end.",
+    "hcom_message_pattern": "^extract: <input_id>$",
+    "required_fields": ["input_id"]
+  },
+  "output_contract": {
+    "paths_written": [
+      "outputs/<input_id>/02_extract/options/A/v1.json + v1.meta.json (option A: entity-first)",
+      "outputs/<input_id>/02_extract/options/B/v1.json + v1.meta.json (option B: fact-first)",
+      "outputs/<input_id>/02_extract/options/C/v1.json + v1.meta.json (option C: quote-first, only if max_options >= 3)"
+    ],
+    "schema_ref": "schemas/02_extract.json",
+    "examples": ["scripts/smoke_v2.py:74-86 (single-winner variant)"]
+  },
+  "hard_rules": [
+    "You do not pick a winner. The critic does.",
+    "You do not validate. The critic does. (:50)",
+    "You do not edit downstream stages (03_analyze, 04_synthesize, 05_format). (:51)",
+    "You do not collapse multiple options into one file. Each option is its own file. (:52)",
+    "You do not produce the same content in 3 options. They must be visibly different approaches. (:53)"
+  ],
+  "reads_at_session_start": [
+    "AGENTS.md",
+    "pipeline.json",
+    "schemas/02_extract.json",
+    "outputs/<input_id>/01_ingest/v1.txt",
+    "tools/artifact_io.py"
+  ],
+  "writes_during_session": [
+    "outputs/<id>/02_extract/options/A/v1.json + v1.meta.json",
+    "outputs/<id>/02_extract/options/B/v1.json + v1.meta.json",
+    "outputs/<id>/02_extract/options/C/v1.json + v1.meta.json (if max_options >= 3)"
+  ],
+  "persistence": "None beyond the option artifacts.",
+  "inbound_handoffs": [
+    {"from": "orch", "title_pattern": "extract: <input_id>", "description": "Initial orchestrator prompt"}
+  ],
+  "outbound_handoffs": [
+    {"to": "critic", "title_pattern": "validate: <input_id> 02_extract", "description": "All option paths sent to critic for scoring + winner selection"}
+  ],
+  "failure_modes": [
+    {"name": "Input text is empty", "handling": "Write all options as {entities:[], facts:[], quotes:[]} with meta.feedback='empty input'. Critic will fail; orchestrator halts."},
+    {"name": "Input is non-textual (numbers, code, etc.)", "handling": "Extract what's there; don't try to invent entities. (:67)"},
+    {"name": "Input too long (>50K tokens)", "handling": "Focus on the first 50K and note in meta.feedback. (:68)"}
+  ],
+  "self_verification": [
+    "pipeline.json#02_extract.max_options options are written (1, 2, or 3)",
+    "Each option has the same shape (matches schemas/02_extract.json): entities[], facts[], quotes[]",
+    "Options are visibly different (different prioritization, not just renamed)",
+    "Each option has a sibling v1.meta.json with validation: pending and producer: 'extractor'",
+    "No stage-root v1.json or v1.meta.json written by this agent"
+  ],
+  "refactor_delta": {
+    "scope": "Small",
+    "current_state": "Extractor spec is the contract layer; the 3 approaches (A/B/C) live in skills/02_extract/SKILL.md § Process.",
+    "target_state": "3-approach detail stays in skills/02_extract/SKILL.md.",
+    "concrete_steps": [
+      "Keep the 3 approaches in skills/02_extract/SKILL.md (already moved).",
+      "Add Tool allowlist current vs target section to the agent spec.",
+      "Implement agents/extractor/.claude/settings.json to enforce the multi-option folder constraint (deny writes to stage-root v1.*)."
+    ]
+  }
+}

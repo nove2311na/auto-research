@@ -1,64 +1,58 @@
 # research-pipeline
 
-A 7-agent AI pipeline that takes any content (text, URL, PDF, DOCX, or a folder of them) and turns it into a structured research report. Like n8n's AI-agent node + output parser, but materialized as a folder of versioned artifacts with a full audit trail.
+An 8-agent AI pipeline that takes any content (text, URL, PDF, DOCX, or a folder of them) and turns it into a structured research report. Like n8n's AI-agent node + output parser, but materialized as a folder of versioned artifacts with a full audit trail.
 
 The swarm is coordinated by [`hcom`](https://github.com/aannoo/hcom) — one Claude per agent, all working off the same shared filesystem.
 
-## 60-second onboarding
+## Quick start on this Windows repo
 
-```bash
-cd ~/autoresearch-agentic-folder
-uv sync
-HCOM_DIR="$PWD/.hcom" hcom hooks add claude    # scopes hcom hooks to this folder
-HCOM_DIR="$PWD/.hcom" hcom 7 claude --tag research-pipeline
-
-# In another terminal — drop an input and watch
-echo "OpenAI was founded in December 2015 by Sam Altman, Greg Brockman, Ilya Sutskever, Wojciech Zaremba, John Schulman, and Elon Musk. The company was initially a non-profit..." > inputs/inbox/openai.txt
-HCOM_DIR="$PWD/.hcom" ./scripts/run_pipeline.sh inputs/inbox/openai.txt
-
-# Tail the work
-HCOM_DIR="$PWD/.hcom" hcom                       # TUI dashboard
-ls outputs/                                       # one folder per input
-cat outputs/<id>/05_format/v1.md                  # final report
-cat outputs/<id>/manifest.json                    # audit trail
+```cmd
+cd /d G:\My Drive\10_Learning\_Research\auto-research
+python scripts\launch.py
+python scripts\status.py
+python scripts\run_pipeline.py --depth medium "Quantum error correction 2026"
 ```
 
-## The pipeline (5 stages)
+The scripts set the repo-local `HCOM_DIR` and reclaim the `bigboss` sender identity automatically. See the full runbook at [`.docs/runbooks/pipeline_start_guide.md`](.docs/runbooks/pipeline_start_guide.md).
+
+## The pipeline (6 stages)
 
 ```
-inputs/inbox/*  →  01_ingest  →  02_extract  →  03_analyze  →  04_synthesize  →  05_format  →  outputs/<id>/
-                       ↓             ↓              ↓              ↓                ↓
-                       └────── critic validates each stage (writes meta, retries on fail) ──────┘
+inputs/inbox/*  →  00_research →  01_ingest  →  02_extract  →  03_analyze  →  04_synthesize  →  05_format  →  outputs/<id>/
+                                  ↓             ↓              ↓              ↓                ↓
+                                  └────── critic validates each stage (writes meta, retries on fail) ──────┘
 ```
 
 | Stage | Agent | Skill | Output |
 |---|---|---|---|
-| `01_ingest` | ingestor | URL/PDF/DOCX/text → plain text | `v1.txt` (+ optional `v1.json` with metadata) |
+| `00_research` | researcher | WebSearch + WebFetch → dossier (always runs first; depth from `--depth` CLI flag) | `v1.json` |
+| `01_ingest` | ingestor | URL/PDF/DOCX/text → plain text (merges dossier from research) | `v1.txt` (+ optional `v1.json` with metadata) |
 | `02_extract` | extractor | entities, facts, quotes (up to 3 different approaches) | `options/{A,B,C}/v1.json` |
 | `03_analyze` | analyzer | themes, gaps, contradictions | `v1.json` |
 | `04_synthesize` | synthesizer | TL;DR, insights, narrative | `v1.json` |
 | `05_format` | formatter | research-report template | `v1.json` (machine) + `v1.md` (human) |
 
-After each stage, the **critic** runs `tools/validator.validate_artifact` — schema + completeness + (optional) LLM-as-judge. On fail, the orchestrator retries the stage agent with feedback. On max-retries-exhausted, the pipeline halts for that input.
+After each stage, the **critic** runs `tools.validator.validate_artifact` — schema + completeness + (optional) LLM-as-judge. On fail, the orchestrator retries the stage agent with feedback. On max-retries-exhausted, the pipeline halts for that input.
 
-## The 7 agents
+## The 8 agents
 
-| # | Tag | Folder | hcom target |
+| # | Tag | Runtime spec | hcom target |
 |---|---|---|---|
-| 1 | `orch` | `agents/orchestrator/` | `@research-pipeline-claude-1` |
-| 2 | `ingest` | `agents/ingestor/` | `@research-pipeline-claude-2` |
-| 3 | `extract` | `agents/extractor/` | `@research-pipeline-claude-3` |
-| 4 | `analyze` | `agents/analyzer/` | `@research-pipeline-claude-4` |
-| 5 | `synth` | `agents/synthesizer/` | `@research-pipeline-claude-5` |
-| 6 | `critic` | `agents/critic/` | `@research-pipeline-claude-6` |
-| 7 | `format` | `agents/formatter/` | `@research-pipeline-claude-7` |
+| 1 | `orch` | `.claude/agents/orchestrator.{md,json}` | `@research-pipeline-claude-1` |
+| 2 | `research` | `.claude/agents/researcher.{md,json}` | `@research-pipeline-claude-8` |
+| 3 | `ingest` | `.claude/agents/ingestor.{md,json}` | `@research-pipeline-claude-2` |
+| 4 | `extract` | `.claude/agents/extractor.{md,json}` | `@research-pipeline-claude-3` |
+| 5 | `analyze` | `.claude/agents/analyzer.{md,json}` | `@research-pipeline-claude-4` |
+| 6 | `synth` | `.claude/agents/synthesizer.{md,json}` | `@research-pipeline-claude-5` |
+| 7 | `critic` | `.claude/agents/critic.{md,json}` | `@research-pipeline-claude-6` |
+| 8 | `format` | `.claude/agents/formatter.{md,json}` | `@research-pipeline-claude-7` |
 
 ## File map
 
 ```
 ~/autoresearch-agentic-folder/
 ├── pipeline.json                   # single source of truth: stages, schemas, retries
-├── AGENTS.md → CLAUDE.md           # team memory (read at session start)
+├── AGENTS.md / CLAUDE.md           # team memory and project instructions
 ├── prd.json                        # pipeline state (gitignored)
 ├── progress.md                     # append-only audit log
 ├── learnings.md                    # team knowledge base
@@ -72,16 +66,30 @@ After each stage, the **critic** runs `tools/validator.validate_artifact` — sc
 │   ├── 04_synthesize/v1.json + v1.meta.json
 │   ├── 05_format/v1.json + v1.md + v1.meta.json
 │   └── manifest.json               # audit trail for this input
-├── tools/
-│   ├── artifact_io.py              # read/write versioned artifacts (atomic)
-│   ├── validator.py                # schema + completeness + LLM-judge
-│   ├── fetch_input.py              # URL/PDF/DOCX → text
-│   ├── manifest.py                 # build/read manifest.json
-│   └── hcom_io.py                  # hcom wrappers
-├── agents/<role>/AGENT.md          # 7 agent prompts
-├── scripts/                        # launch + run helpers
-└── .claude/settings.json           # hcom hooks
+├── src/research_pipeline/          # importable Python implementation
+│   ├── paths.py                    # canonical repo/runtime paths
+│   ├── tools/                      # artifact I/O, manifest, validator, hcom helpers
+│   ├── gates/                      # rule-based validation gates
+│   └── cli/                        # implementations behind scripts/*.py
+├── tools/                          # compatibility shims for python -m tools.*
+├── gates/                          # compatibility shims + gate docs
+├── scripts/                        # stable launch/run wrappers
+├── .claude/
+│   ├── agents/                     # 8 runtime agent specs
+│   ├── skills/                     # stage skills, fixtures, templates, rubrics
+│   └── settings.json               # Claude/hcom hooks and permissions
+├── .docs/
+│   ├── runbooks/                   # user-facing operating guides
+│   ├── agentic/                    # canonical agent/skill design specs
+│   ├── version/                    # versioned change notes
+│   ├── reports/                    # audit reports
+│   ├── plans/                      # design proposals
+│   └── source/                     # external papers and upstream references
+├── evals/                          # golden tasks, rubrics, scorecards
+└── observability/                  # trace schemas and dashboards
 ```
+
+The root `scripts/`, `tools/`, and `gates/` folders are kept intentionally as compatibility surfaces. New Python implementation should go under `src/research_pipeline/`.
 
 ## The 5 hard invariants
 
@@ -139,7 +147,7 @@ Every `v1.meta.json` looks like:
 
 1. Add the stage to `pipeline.json` (id, agent, schema, max_retries, max_options).
 2. Create `schemas/<NN>_<name>.json`.
-3. Create `agents/<role>/AGENT.md` describing the skill.
+3. Create `.claude/agents/<role>.md` and `.claude/agents/<role>.json` describing the agent.
 4. Update `AGENTS.md` file-ownership table to list the new paths.
 5. Run `./scripts/status.sh` to verify.
 
@@ -150,7 +158,7 @@ The orchestrator reads `pipeline.json` at runtime; no other code change is neede
 To use this for something other than content research (e.g., log analysis, code review, customer-feedback triage), edit:
 
 - `pipeline.json` — change `stages[].agent` and `schemas/*` to point at your new task
-- Each `agents/<role>/AGENT.md` — rewrite the skill
+- Each `.claude/agents/<role>.md` and `.claude/skills/<stage>/` — rewrite the role and skill behavior
 - `schemas/*.json` — replace with your task's output shape
 
 The folder structure, hcom coordination, critic loop, and artifact versioning stay the same.

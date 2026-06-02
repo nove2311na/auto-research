@@ -1,0 +1,229 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "skill-spec",
+  "description": "Formal Draft-7 contract for a skill spec file (one per skills/NN-<name>/). Authored from .docs/agentic/templates/skill-spec.md; consumed by tools.spec_io.",
+  "type": "object",
+  "required": [
+    "stage_id",
+    "owning_agent",
+    "schema_ref",
+    "output_format",
+    "max_options",
+    "max_retries",
+    "antonio_gulli_patterns",
+    "claude_code_book_chapters",
+    "input_schema",
+    "process",
+    "output_schema",
+    "examples",
+    "self_check",
+    "validation",
+    "failure_modes",
+    "refactor_delta"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "stage_id": {
+      "type": "string",
+      "pattern": "^[0-9]{2}_[a-z]+$"
+    },
+    "owning_agent": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "schema_ref": {
+      "type": "string",
+      "pattern": "^(schemas/[0-9]{2}_[a-z]+\\.json|N/A)$"
+    },
+    "output_format": {
+      "type": "string",
+      "enum": ["json", "txt", "json+md"]
+    },
+    "max_options": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "max_retries": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "antonio_gulli_patterns": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^Ch\\. [0-9]+ .+"},
+      "minItems": 0
+    },
+    "claude_code_book_chapters": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^Ch\\. [0-9]+ .+"},
+      "minItems": 0
+    },
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fields", "hcom_message_example"],
+      "properties": {
+        "fields": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "type", "required", "source"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "type": {"type": "string", "minLength": 1},
+              "required": {"type": "boolean"},
+              "source": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "hcom_message_example": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "process": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["step", "type", "description"],
+        "properties": {
+          "step": {"type": "integer", "minimum": 1},
+          "type": {
+            "type": "string",
+            "enum": ["deterministic", "llm"]
+          },
+          "description": {"type": "string", "minLength": 1},
+          "code_block": {"type": "string"}
+        }
+      }
+    },
+    "output_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_fields", "template"],
+      "properties": {
+        "required_fields": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "template": {
+          "type": "object",
+          "minProperties": 1
+        },
+        "markdown_template": {
+          "type": "string"
+        }
+      }
+    },
+    "examples": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "artifact"],
+        "properties": {
+          "source": {"type": "string", "minLength": 1},
+          "lifted_from": {"type": "string"},
+          "artifact": {
+            "type": "object",
+            "minProperties": 0
+          }
+        }
+      }
+    },
+    "self_check": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["step", "check"],
+        "properties": {
+          "step": {"type": "integer", "minimum": 1},
+          "check": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["check_refs", "threshold", "common_failures"],
+      "properties": {
+        "check_refs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "common_failures": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["failure", "fix"],
+            "properties": {
+              "failure": {"type": "string", "minLength": 1},
+              "fix": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    },
+    "failure_modes": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "handling"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "handling": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "helpers": {
+      "type": "object",
+      "description": "Paths to per-skill helper files (fixtures, templates, scripts, examples, rubric, eval-cases). Optional but recommended.",
+      "additionalProperties": false,
+      "required": ["fixtures", "templates", "scripts", "examples", "rubric", "eval_cases"],
+      "properties": {
+        "fixtures":   {"type": "string", "minLength": 1},
+        "templates":  {"type": "string", "minLength": 1},
+        "scripts":    {"type": "string", "minLength": 1},
+        "examples":   {"type": "string", "minLength": 1},
+        "rubric":     {"type": "string", "minLength": 1},
+        "eval_cases": {"type": "string", "minLength": 1}
+      }
+    },
+    "refactor_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "current_state", "target_state", "concrete_steps"],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": ["Small", "Medium", "Large"]
+        },
+        "current_state": {"type": "string", "minLength": 1},
+        "target_state": {"type": "string", "minLength": 1},
+        "concrete_steps": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        }
+      }
+    }
+  }
+}

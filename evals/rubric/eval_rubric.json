@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "eval-rubric",
+  "description": "8-criterion rubric for scoring an agent or pipeline run. Each criterion is 0.0-1.0; final_score is the mean.",
+  "type": "object",
+  "required": ["version", "criteria", "weights"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
+    "criteria": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "correctness", "completeness", "grounding", "safety",
+        "maintainability", "testability", "cost", "reproducibility"
+      ],
+      "properties": {
+        "correctness":      {"type": "object", "required": ["question", "description"], "properties": {"question": {"type": "string"}, "description": {"type": "string"}}},
+        "completeness":     {"type": "object", "required": ["question", "description"], "properties": {"question": {"type": "string"}, "description": {"type": "string"}}},
+        "grounding":        {"type": "object", "required": ["question", "description"], "properties": {"question": {"type": "string"}, "description": {"type": "string"}}},
+        "safety":           {"type": "object", "required": ["question", "description"], "properties": {"question": {"type": "string"}, "description": {"type": "string"}}},
+        "maintainability":  {"type": "object", "required": ["question", "description"], "properties": {"question": {"type": "string"}, "description": {"type": "string"}}},
+        "testability":      {"type": "object", "required": ["question", "description"], "properties": {"question": {"type": "string"}, "description": {"type": "string"}}},
+        "cost":             {"type": "object", "required": ["question", "description"], "properties": {"question": {"type": "string"}, "description": {"type": "string"}}},
+        "reproducibility":  {"type": "object", "required": ["question", "description"], "properties": {"question": {"type": "string"}, "description": {"type": "string"}}}
+      }
+    },
+    "weights": {
+      "type": "object",
+      "description": "Per-criterion weight. Defaults to 1.0; sum is not required to equal 1 because final_score is mean.",
+      "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}
+    },
+    "thresholds": {
+      "type": "object",
+      "description": "Pass/warn/fail cutoffs for final_score.",
+      "additionalProperties": false,
+      "required": ["pass", "warn"],
+      "properties": {
+        "pass": {"type": "number", "minimum": 0, "maximum": 1},
+        "warn": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "_approach": "single-winner variant (the actual smoke output)",
+  "_source": "scripts/smoke_v2.py:74-86",
+  "entities": [
+    {"name": "Google", "type": "org", "mentions": 4},
+    {"name": "IBM", "type": "org", "mentions": 3},
+    {"name": "Surface code", "type": "concept", "mentions": 5}
+  ],
+  "facts": [
+    {"claim": "Surface codes have ~1% threshold", "evidence_quote": "high threshold (~1%)", "confidence": "high"},
+    {"claim": "1000+ logical qubits demonstrated in 2026", "evidence_quote": "logical qubit counts crossed 1000", "confidence": "high"}
+  ],
+  "quotes": []
+}

@@ -1,0 +1,31 @@
+{
+  "topic": "<one-sentence specific subject>",
+  "depth": "shallow|medium|deep",
+  "queries": [
+    {
+      "query": "<broad scoping query>",
+      "round": 1,
+      "rationale": "<why this angle>",
+      "results_count": 0
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://example.com/page",
+      "title": "<page title>",
+      "fetched_at": "2026-06-01T12:00:00Z",
+      "excerpt": "<200-500 char excerpt matching topic>",
+      "relevance": "high|medium|low"
+    }
+  ],
+  "synthesis": "<500-2000 word integrated summary with [1], [2] citations>",
+  "key_findings": [
+    "<finding 1: specific, evidence-backed>",
+    "<finding 2>",
+    "<finding 3>"
+  ],
+  "gaps": [
+    "<honest limitation 1>",
+    "<honest limitation 2>"
+  ]
+}

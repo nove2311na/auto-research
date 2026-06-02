@@ -1,0 +1,19 @@
+{
+  "input_id": "8f3a2b1c",
+  "stage": "02_extract",
+  "version": 1,
+  "producer": "extractor",
+  "produced_at": "2026-06-02T12:00:00Z",
+  "validation": {
+    "status": "fail",
+    "validator": "critic",
+    "validated_at": "2026-06-02T12:05:00Z",
+    "score": 0.5,
+    "feedback": "failed checks: ['llm_judge']",
+    "checks": {
+      "schema": "pass",
+      "completeness": "pass",
+      "llm_judge": "fail"
+    }
+  }
+}

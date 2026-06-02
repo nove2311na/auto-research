@@ -1,0 +1,28 @@
+{
+  "summary": "Quantum error correction reached industrial maturity in 2026, with surface codes dominating the modality and at least three platforms demonstrating below-threshold operation. The community consensus is a 1M:1 physical-to-logical ratio target, a 10x reduction from earlier estimates.",
+  "insights": [
+    {"insight": "Surface codes are the de facto QEC modality, with logical qubit counts crossing 1000 in late 2025", "grounding": "theme: surface code dominance", "novelty": "medium"},
+    {"insight": "Multiple platforms (Google, IBM, Microsoft) demonstrated below-threshold operation in 2025-2026", "grounding": "theme: threshold achievement", "novelty": "high"},
+    {"insight": "The 1M:1 physical-to-logical ratio target is 10x lower than earlier estimates, enabled by better decoding", "grounding": "theme: overhead reduction", "novelty": "high"},
+    {"insight": "Real-time decoding at nanosecond timescales remains the dominant engineering challenge", "grounding": "gap: long-term stability", "novelty": "medium"}
+  ],
+  "narrative": "Quantum error correction has crossed the threshold from research curiosity to industrial practice. Surface codes dominate the modality, in part because of their high (~1%) threshold and in part because of the rich ecosystem of decoding algorithms that have matured over the past decade. In late 2025, multiple platforms demonstrated logical qubit counts exceeding 1000; in 2026, the question has shifted from 'can we?' to 'how few physical qubits per logical?'.\n\nThe community consensus emerging from the 2026 announcements is that fault-tolerant quantum computing will require approximately 1 million physical qubits per logical qubit, a 10x reduction from earlier estimates. This reduction is attributed primarily to better decoding algorithms (union-find, minimum-weight perfect matching) operating in real time at nanosecond timescales. Google's Sycamore-class 72-qubit device and IBM's Heron R3 156-qubit device both announced below-threshold operation with such decoders.\n\nOpen challenges remain. The long-term stability of logical qubits (coherence times exceeding one week) has not been demonstrated. Syndrome measurement itself is the dominant source of error in current implementations. And alternative modalities—bosonic codes, color codes, topological qubits—are still too immature to compare on equal footing with surface codes.",
+  "diagrams": [
+    {"type": "flowchart", "title": "Surface code QEC loop", "description": "How surface code detects + corrects a single physical error in real time", "code": "flowchart TD\n    A[Physical qubit] -->|error ~1e-3| B[Syndrome measurement]\n    B --> C{Decoder}\n    C -->|below threshold| D[Logical qubit preserved]\n    C -->|above threshold| E[Logical error]\n    style D fill:#90EE90\n    style E fill:#FFB6C1"},
+    {"type": "mindmap", "title": "QEC 2026 landscape", "description": "The four quadrants: surface codes, platforms, overhead, open problems", "code": "mindmap\n  root((QEC 2026))\n    Surface codes\n      Threshold ~1%\n      1000+ logical qubits\n    Platforms\n      Google Sycamore 72q\n      IBM Heron R3 156q\n      Microsoft Majorana\n    Overhead\n      1M:1 physical-to-logical\n      Down from 10M:1\n    Open problems\n      Long-term coherence\n      Real-time decoding"}
+  ],
+  "theses": [
+    {
+      "statement": "Surface codes will remain the dominant industrial QEC modality through 2028",
+      "evidence": ["Surface codes have ~1% threshold", "1000+ logical qubits demonstrated in 2026", "Real-time decoding ecosystem has matured"],
+      "counterarguments": ["Bosonic + color codes may mature faster than expected", "Topological qubits (Microsoft Majorana) could leapfrog surface codes if coherence improves"],
+      "confidence": "high"
+    },
+    {
+      "statement": "The 1M:1 physical-to-logical ratio is achievable by 2030, with aggressive decoding optimization",
+      "evidence": ["Industry consensus on 1M:1 target (down from 10M:1)", "Real-time nanosecond decoding demonstrated on Sycamore + Heron"],
+      "counterarguments": ["Syndrome measurement remains the dominant error source", "Long-term coherence (>1 week) not yet demonstrated"],
+      "confidence": "medium"
+    }
+  ]
+}

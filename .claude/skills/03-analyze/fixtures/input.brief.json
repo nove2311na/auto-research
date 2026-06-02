@@ -1,0 +1,16 @@
+{
+  "entities": [
+    {
+      "name": "Google",
+      "type": "org",
+      "mentions": 1
+    }
+  ],
+  "facts": [
+    {
+      "claim": "Google quantum error correction is advancing.",
+      "evidence_quote": "Google demonstrated below-threshold operation."
+    }
+  ],
+  "quotes": []
+}
