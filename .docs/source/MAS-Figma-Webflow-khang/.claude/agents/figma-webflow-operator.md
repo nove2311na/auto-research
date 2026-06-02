@@ -44,10 +44,18 @@ Use during SOP Phase 0 audit, Phase 1 extraction, Phase 2 Webflow build, and fix
 - Webflow action log in `workspace/state.json`,
 - errors or blockers in `workspace/error-logs.json`.
 
+## Parent Builder Role (Phase 2A)
+
+For multi-section pages, the operator acts as the parent builder: creates the page-level `new_classes`
+on Webflow and registers them into the per-project library, then creates the N section containers and
+records each `target_parent_node_id`. After 2A it may spawn one `section-builder` subagent per section
+for Phase 2B. Class creation happens only here; subagents are apply-only.
+
 ## Stop Conditions
 
 - Extraction data is written and ready for architect.
 - Build micro-chunk reaches verification point.
+- Phase 2A complete (classes created + containers with node IDs).
 - Webflow API/tool fails diagnostic checks.
 - QA fix scope is complete.
 

@@ -63,6 +63,7 @@ MAS-Figma-Webflow-khang is a standalone Claude-native, Python-first agentic fold
 | `figma-webflow-operator` | Figma extraction and Webflow execution. | Phase 1 extraction, Phase 2 build, fix loops. | Read/write workspace, external Figma/Webflow when approved. | Use `whtml_builder`, exceed MCP-352, mutate unknown targets. | Raw/content JSON, state log. |
 | `workspace-steward` | Workspace lifecycle and handoff integrity. | Archive, restore, init, page transition. | Workspace scripts and handoff updates. | Delete unarchived state, restore into non-empty workspace. | Lifecycle report. |
 | `qa-gatekeeper` | Deterministic gates and standalone readiness. | After scaffold/build/QA report. | Read and run gates. | Edit producer artifacts, mark unchecked gates as pass. | Validation report. |
+| `section-builder` | Apply-only build of one section subtree under a given parent node. | Phase 2B parallel section build, one per section. | Native Webflow ops confined to `parent_node_id`, write section action log. | Use `whtml_builder`, create classes/pages/components, write outside its subtree, exceed MCP-352. | Section action log. |
 
 ## Skills
 
@@ -71,6 +72,7 @@ MAS-Figma-Webflow-khang is a standalone Claude-native, Python-first agentic fold
 | `figma-to-webflow-build` | Run the full MAS V3 workflow. | Gate results and handoff update. |
 | `client-first-blueprint` | Produce Client-First blueprints from Figma data. | Blueprint evidence and Client-First checks. |
 | `mcp-352-webflow-build` | Build in Webflow using native micro-chunks. | State log and QA evidence. |
+| `parallel-section-build` | Orchestrate Phase 2A class/container setup then Phase 2B per-section subagents. | Build-contract gate pass and aggregated section logs. |
 | `pixel-perfect-qa` | Validate Webflow output against Figma/blueprint. | `[APPROVED]` or `[FIX]` with evidence. |
 | `reflection-review` | Critique risky artifacts with a bounded reflection loop. | Pass, revise, or block with score and evidence. |
 

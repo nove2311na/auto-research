@@ -16,7 +16,9 @@
       "observation": {"type": "string"},
       "next_decision": {"type": "string"},
       "artifact": {"type": "string"},
-      "resolution": {"type": "string"}
+      "resolution": {"type": "string"},
+      "subagent_id": {"type": "string", "description": "Which section-builder subagent executed this action (parallel tracking)."},
+      "parent_node_id": {"type": "string", "description": "Webflow parent node ID this action targeted."}
     },
     "additionalProperties": true
   }

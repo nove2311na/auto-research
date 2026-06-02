@@ -22,12 +22,20 @@ description: Execute approved Webflow builds using native element operations and
 7. Log each action in `workspace/state.json`.
 8. Stop at verification boundaries or tool failures.
 
+## Apply-Only Mode
+
+When invoked by a `section-builder` subagent (Phase 2B), the operator runs in apply-only mode:
+create elements and apply EXISTING classes only, confined to descendants of the supplied
+`parent_node_id`. Class, page, and component creation is out of scope (the parent owns that in Phase 2A).
+A referenced class that does not exist is a blocker, not a creation.
+
 ## Forbidden
 
 - No `whtml_builder`.
 - No silent page creation.
 - No external writes without target confirmation.
 - No real asset upload by default.
+- In apply-only mode: no class/page/component creation and no writes outside the assigned subtree.
 
 ## Validation
 

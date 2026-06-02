@@ -16,10 +16,14 @@ description: Run the MAS V3 Figma-to-Webflow workflow from project intake throug
 1. PM reads `agentic/memory/session-handoff.md`, `agentic/policies/runtime-instructions.md`, `agentic/orchestration/sop.md`, and `agentic/specs/agent-system-spec.md`.
 2. Workspace steward validates or initializes `workspace/`.
 3. Operator extracts Figma data into `workspace/rawdata/` and `workspace/contents/`.
-4. Architect produces Client-First blueprints in `workspace/blueprints/`.
+4. Architect produces Client-First blueprints in `workspace/blueprints/`, each with an `html_contract`
+   plus `cf_classes` per section and a page-level `new_classes` list (the naming authority).
 5. PM presents blueprint and stops for user approval.
-6. Operator builds in Webflow using native element operations and MCP-352.
-7. Architect runs QA against actual Webflow state or snapshots.
+6. Build in Webflow using native element operations and MCP-352. For multi-section pages, use the
+   `parallel-section-build` skill: Phase 2A (parent creates new classes + section containers) then
+   Phase 2B (one apply-only `section-builder` subagent per section). Single-section pages may use a
+   single operator pass.
+7. Architect runs QA against actual Webflow state or snapshots, aggregating all section action logs.
 8. Gatekeeper runs local gates and standalone baseline checks.
 9. PM updates `agentic/memory/session-handoff.md` and reports evidence.
 

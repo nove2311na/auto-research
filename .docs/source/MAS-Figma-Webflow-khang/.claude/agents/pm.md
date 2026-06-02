@@ -35,6 +35,13 @@ Use for every user request, phase transition, build kickoff, approval checkpoint
 - current workspace state,
 - target Figma URL and Webflow site/page when available.
 
+## Parallel Section Build
+
+For multi-section pages, after approval the PM drives the `parallel-section-build` skill:
+owns spawning one `section-builder` subagent per section in Phase 2B and aggregating their action logs.
+The PM enforces the apply-only invariant: subagents never create classes, pages, or components; new
+classes are created only by the parent operator in Phase 2A.
+
 ## Output Contract
 
 - phase report,

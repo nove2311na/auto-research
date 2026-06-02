@@ -73,14 +73,14 @@ Hard rules:
 
 Goal: execute only the approved blueprint with Webflow native operations.
 
-Preconditions:
+Preconditions (all of Phase 2):
 
 - user approval exists,
 - Webflow site/page target confirmed,
 - approved blueprint path exists,
 - operator has a scoped task.
 
-MCP-352:
+MCP-352 (applies to every Webflow turn, parent and subagent):
 
 - max 3 nesting levels per turn,
 - max 5 Webflow actions per turn,
@@ -88,14 +88,49 @@ MCP-352:
 
 Forbidden:
 
-- no `whtml_builder`,
+- no `whtml_builder` (the blueprint `html_contract` is an instruction, recreated with native ops),
 - no unapproved Webflow writes,
 - no real asset uploads by default,
 - no silent creation of pages/components.
 
+The build runs as two sub-phases. A single-section page may collapse 2A and 2B into one operator pass.
+
+### Phase 2A: Class and Container Setup (serial, parent)
+
+Run by the parent operator. This is the only place classes are created, which removes the
+parallel naming race.
+
+1. Run the build-contract gate before any write:
+
+```cmd
+python scripts\gates\validate_build_contract.py --site-id <webflow_site_id>
+```
+
+2. For each entry in the blueprint `new_classes`, create the class on Webflow with the native
+   `style_tool`, then register it into `knowledge-base/libraries/{site_id}/client-first-library.json`
+   and append a `changelog.json` entry (`source: "figma_adapt"`).
+3. Create the N section container elements under `main-wrapper` in correct vertical order.
+4. Record each container's returned node ID as the section's `target_parent_node_id`, logged to
+   `workspace/state.json` under phase `phase_2a_class_setup`.
+
+Exit: all `new_classes` exist on Webflow and are registered; all section containers created with node IDs.
+
+### Phase 2B: Parallel Section Build
+
+Run by one `section-builder` subagent per section (apply-only).
+
+1. PM builds a `subagent-task` payload per section (see `agentic/schemas/subagent-task.schema.json`).
+2. PM spawns one `section-builder` per section. Spawn in parallel when the Webflow MCP supports
+   concurrent writes to one site; otherwise the same payloads run sequentially. Correctness is identical.
+3. Each subagent recreates its `html_contract` under its `parent_node_id` with native operations,
+   applies existing classes only, and never creates classes, pages, or components.
+4. Each subagent logs to `workspace/sections/[section_id]_action_log.json`.
+
+Exit: all section action logs present and ready for QA.
+
 Output:
 
-- action entries in `workspace/state.json`,
+- action entries in `workspace/state.json` and `workspace/sections/[section_id]_action_log.json`,
 - blockers in `workspace/error-logs.json`.
 
 ## Phase 3: QA Loop

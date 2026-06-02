@@ -10,6 +10,8 @@
         "phase_0_setup_audit",
         "phase_1_blueprint",
         "phase_2_webflow_build",
+        "phase_2a_class_setup",
+        "phase_2b_parallel_section_build",
         "phase_3_qa_loop",
         "handoff_closeout"
       ]

@@ -45,6 +45,29 @@ Required output:
 - verification points,
 - blockers.
 
+## PM to Section Builder: Webflow Section Build
+
+Spawned once per section during Phase 2B, after Phase 2A creates all classes and containers.
+
+Required input (matches `agentic/schemas/subagent-task.schema.json`):
+
+- `section_id`,
+- `parent_node_id` (section container from Phase 2A),
+- `html_contract` (section slice with Client-First tags + final class names),
+- `cf_classes` (all must already exist on the canvas),
+- Webflow site ID,
+- Webflow page ID,
+- MCP-352 constraints,
+- `mode: apply_only`.
+
+Required output:
+
+- `workspace/sections/[section_id]_action_log.json` (ReAct entries with `subagent_id` + `parent_node_id`),
+- verification points,
+- blockers in `workspace/error-logs.json`.
+
+Invariant: the subagent applies existing classes only. A missing class is a blocker, never a creation.
+
 ## PM to Architect: QA
 
 Required input:

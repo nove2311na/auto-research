@@ -3,7 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.gates.validate_project_library import validate_project_library
+from scripts.gates.validate_build_contract import validate_build_contract
 
 
 REQUIRED_TEXT = {
@@ -36,6 +42,18 @@ def read_text(path: Path) -> str:
         return ""
 
 
+def _load_workspace_site_id(root: Path) -> str:
+    """Return webflowSiteId from workspace/meta.json if present; empty string otherwise."""
+    meta_path = root / "workspace" / "meta.json"
+    if not meta_path.exists():
+        return ""
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        return meta.get("webflowSiteId", "")
+    except (json.JSONDecodeError, OSError):
+        return ""
+
+
 def validate(root: Path) -> list[str]:
     failures: list[str] = []
     for relative_path, phrases in REQUIRED_TEXT.items():
@@ -52,6 +70,22 @@ def validate(root: Path) -> list[str]:
         for phrase in phrases:
             if phrase in text:
                 failures.append(f"{relative_path} contains deprecated phrase {phrase}")
+
+    # Auto-run project library gate when workspace has a webflowSiteId
+    site_id = _load_workspace_site_id(root)
+    if site_id:
+        lib_failures = validate_project_library(root, site_id)
+        for failure in lib_failures:
+            failures.append(f"[project-library:{site_id}] {failure}")
+
+        # Build-contract gate only when blueprints exist (a build is in progress)
+        if (root / "workspace" / "blueprints").is_dir() and any(
+            (root / "workspace" / "blueprints").glob("*.json")
+        ):
+            contract_failures = validate_build_contract(root, site_id)
+            for failure in contract_failures:
+                failures.append(f"[build-contract:{site_id}] {failure}")
+
     return failures
 
 

@@ -38,7 +38,9 @@ Use during SOP Phase 1 blueprint creation and Phase 3 QA loop.
 
 ## Output Contract
 
-- blueprint JSON in `workspace/blueprints/`,
+- blueprint JSON in `workspace/blueprints/`, including per-section `html_contract` + `cf_classes`
+  and a page-level `new_classes` list (the architect is the naming authority that pre-decides every
+  class name, which prevents the parallel-build naming race),
 - updated `workspace/page_structure.json`,
 - QA verdict in `workspace/error-logs.json` or a QA report,
 - `[APPROVED]` or `[FIX]` verdict.
