@@ -110,10 +110,11 @@ python scripts\gates\validate_build_contract.py --site-id <webflow_site_id>
    `style_tool`, then register it into `knowledge-base/libraries/{site_id}/client-first-library.json`
    and append a `changelog.json` entry (`source: "figma_adapt"`).
 3. Create the N section container elements under `main-wrapper` in correct vertical order.
-4. Record each container's returned node ID as the section's `target_parent_node_id`, logged to
-   `workspace/state.json` under phase `phase_2a_class_setup`.
+4. Record each container's returned `{component, element}` object as the section's
+   `target_parent_element_id`, logged to `workspace/state.json` under phase `phase_2a_class_setup`.
+   This object is passed directly as `parent_element_id` to `element_builder` in Phase 2B.
 
-Exit: all `new_classes` exist on Webflow and are registered; all section containers created with node IDs.
+Exit: all `new_classes` exist on Webflow and are registered; all section containers created with `parent_element_id` objects.
 
 ### Phase 2B: Parallel Section Build
 
@@ -122,7 +123,7 @@ Run by one `section-builder` subagent per section (apply-only).
 1. PM builds a `subagent-task` payload per section (see `agentic/schemas/subagent-task.schema.json`).
 2. PM spawns one `section-builder` per section. Spawn in parallel when the Webflow MCP supports
    concurrent writes to one site; otherwise the same payloads run sequentially. Correctness is identical.
-3. Each subagent recreates its `html_contract` under its `parent_node_id` with native operations,
+3. Each subagent recreates its `html_contract` under its `parent_element_id` with native operations,
    applies existing classes only, and never creates classes, pages, or components.
 4. Each subagent logs to `workspace/sections/[section_id]_action_log.json`.
 

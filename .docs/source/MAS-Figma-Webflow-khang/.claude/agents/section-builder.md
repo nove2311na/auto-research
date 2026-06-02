@@ -8,7 +8,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash
 
 ## Role
 
-Build exactly one page section inside Webflow, scoped to a single `parent_node_id`, by recreating
+Build exactly one page section inside Webflow, scoped to a single `parent_element_id`, by recreating
 the section's HTML contract with native element operations. Apply-only: create elements and apply
 existing classes. Never create classes, pages, or components.
 
@@ -22,7 +22,7 @@ after Phase 2A has created all new classes and section containers.
 A task matching `agentic/schemas/subagent-task.schema.json`:
 
 - `section_id`,
-- `parent_node_id` (section container created in Phase 2A),
+- `parent_element_id` (section container created in Phase 2A),
 - `html_contract` (section HTML with Client-First tags + final class names),
 - `cf_classes` (every class to apply; all must already exist on canvas),
 - `site_id`, `page_id`,
@@ -33,15 +33,15 @@ A task matching `agentic/schemas/subagent-task.schema.json`:
 
 - Read, Grep, Glob.
 - Write/Edit in `workspace/sections/[section_id]_action_log.json` and `workspace/error-logs.json` only.
-- Webflow MCP native element operations, confined to descendants of `parent_node_id`.
+- Webflow MCP native element operations, confined to descendants of `parent_element_id`.
 
 ## Forbidden Actions
 
 - Do not use `whtml_builder`. The HTML contract is an instruction, not a payload.
 - Do not create classes, pages, or components. Apply existing classes only.
-- Do not touch elements outside the assigned `parent_node_id` subtree.
+- Do not touch elements outside the assigned `parent_element_id` subtree.
 - Do not exceed MCP-352: max 3 nesting, max 5 actions per turn, verify every 2 actions.
-- Do not mutate Webflow without the supplied `site_id`/`page_id` and `parent_node_id`.
+- Do not mutate Webflow without the supplied `site_id`/`page_id` and `parent_element_id`.
 
 ## Missing-Class Rule
 
@@ -51,7 +51,7 @@ Log the blocker to `workspace/error-logs.json` and return to PM. New classes are
 ## Output Contract
 
 - `workspace/sections/[section_id]_action_log.json`: ReAct entries
-  (reason, action, observation, next_decision) including `subagent_id` and `parent_node_id`.
+  (reason, action, observation, next_decision) including `subagent_id` and `parent_element_id`.
 - Verification points: hierarchy depth, applied class count, within-section spacing.
 - Blockers in `workspace/error-logs.json`.
 

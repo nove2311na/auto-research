@@ -28,7 +28,7 @@ reference names that already exist on the canvas.
 3. Phase 2A (serial, parent): for each entry in `new_classes`, create the class on Webflow via the
    native `style_tool`, then append it to the per-project library + changelog (`source: "figma_adapt"`).
 4. Phase 2A (serial, parent): create the N section container elements under `main-wrapper` in correct
-   vertical order; record each returned node ID as the section's `target_parent_node_id` and log to
+   vertical order; record each returned node ID as the section's `target_parent_element_id` and log to
    `workspace/state.json` (phase `phase_2a_class_setup`).
 5. Phase 2B: build one `subagent-task` payload per section (matching `agentic/schemas/subagent-task.schema.json`),
    then spawn one `section-builder` subagent per section. Each is apply-only and scoped to its parent node.

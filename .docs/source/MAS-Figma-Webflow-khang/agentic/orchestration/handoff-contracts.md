@@ -52,7 +52,7 @@ Spawned once per section during Phase 2B, after Phase 2A creates all classes and
 Required input (matches `agentic/schemas/subagent-task.schema.json`):
 
 - `section_id`,
-- `parent_node_id` (section container from Phase 2A),
+- `parent_element_id` (`{component, element}` object of section container from Phase 2A; passed directly to `element_builder`),
 - `html_contract` (section slice with Client-First tags + final class names),
 - `cf_classes` (all must already exist on the canvas),
 - Webflow site ID,
@@ -62,7 +62,7 @@ Required input (matches `agentic/schemas/subagent-task.schema.json`):
 
 Required output:
 
-- `workspace/sections/[section_id]_action_log.json` (ReAct entries with `subagent_id` + `parent_node_id`),
+- `workspace/sections/[section_id]_action_log.json` (ReAct entries with `subagent_id` + `parent_element_id`),
 - verification points,
 - blockers in `workspace/error-logs.json`.
 

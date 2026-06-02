@@ -34,7 +34,14 @@ Use during SOP Phase 1 blueprint creation and Phase 3 QA loop.
 - `workspace/design-system.json`,
 - Client-First knowledge,
 - `knowledge-base/client-first-class-map.json`,
+- per-project library: `knowledge-base/libraries/{site_id}/client-first-library.json`,
 - page context and target page ID.
+
+## HTML Contract Rule
+
+Read `agentic/prompts/write-html-contract.md` before writing any `html_contract` or `new_classes`.
+That guide is the mandatory decision framework: when to apply an existing utility/library class vs when to
+create a new custom class. Every `new_classes` entry must cite the Case number from that guide in `reason`.
 
 ## Output Contract
 

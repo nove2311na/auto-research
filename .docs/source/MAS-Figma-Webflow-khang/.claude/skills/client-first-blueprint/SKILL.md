@@ -15,22 +15,31 @@ description: Produce Client-First V2 Webflow blueprints from Figma raw data usin
 
 1. Read `knowledge-base/client-first-theory.md`.
 2. Read `knowledge-base/client-first-class-map.json`.
-3. Read `agentic/specs/figma-to-client-first-mapping.md`.
-4. Read Figma raw data and content files.
-5. Identify global components, sections, grids, flex layouts, variables, text styles, and assets.
-6. Generate blueprint JSON under `workspace/blueprints/` with `class_mapping[]` entries.
-7. Update `workspace/page_structure.json` with routing and section map only.
-8. Confirm REM conversion and Client-First naming.
-9. Return blueprint summary to PM for user approval.
+3. Read `knowledge-base/libraries/{site_id}/client-first-library.json` (per-project token classes).
+4. Read `agentic/specs/figma-to-client-first-mapping.md`.
+5. **Read `agentic/prompts/write-html-contract.md`** — mandatory decision guide for utility vs custom class.
+6. Read Figma raw data and content files.
+7. Identify global components, sections, grids, flex layouts, variables, text styles, and assets.
+8. For each section, write `html_contract` using the 5-layer decision flowchart in `write-html-contract.md`.
+9. List every new custom class in the page-level `new_classes` array; each entry must cite Case number in `reason`.
+10. Generate blueprint JSON under `workspace/blueprints/` with `html_contract`, `cf_classes`, `new_classes`.
+11. Update `workspace/page_structure.json` with routing and section map only.
+12. Confirm REM conversion and Client-First naming.
+13. Run `python scripts/gates/validate_build_contract.py --site-id <id>` before returning to PM.
+14. Return blueprint summary to PM for user approval.
 
 ## Hard Rules
 
-- Use six-layer Client-First structure.
+- Use six-layer Client-First structure (see `write-html-contract.md` Layer 1).
 - Use `section_[name]`, `padding-global`, `container-[size]`, and `padding-section-[size]`.
-- Use underscore only for custom child classes.
-- Use REM units only.
-- Do not invent a utility class when `knowledge-base/client-first-class-map.json` contains a matching rule.
-- Every Figma property to class mapping needs a source and reason.
+- Use underscore ONLY for custom child classes (`component_element`). Utilities have NO underscore.
+- Use REM units only — no px in final values.
+- **Never create a utility class** when `knowledge-base/client-first-class-map.json` or the per-project library contains a matching rule.
+- **Never create a custom class** for typography size/weight/color/align — use existing utilities.
+- **Always create a custom class** for layout (flex/grid/positioning/sizing) — CF has no layout utilities.
+- Max 3–4 classes per element. If you need 5+, merge into a single custom class.
+- Every `new_classes` entry must cite Case 1–5 from `write-html-contract.md` in `reason`.
+- Every Figma property to class mapping needs `source` pointing to class map or library file.
 - Do not approve generic global components.
 
 ## Validation
