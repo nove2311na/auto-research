@@ -1,8 +1,9 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "source_notes": [
     "knowledge-base/client-first-theory.md",
-    "agentic/specs/figma-to-client-first-mapping.md"
+    "agentic/specs/figma-to-client-first-mapping.md",
+    "finsweet.com/client-first/docs"
   ],
   "principles": {
     "unit_system": "rem",
@@ -72,7 +73,7 @@
         "class_strategy": "utility_selection"
       },
       {
-        "class_pattern": "text-weight-[normal|medium|semibold|bold]",
+        "class_pattern": "text-weight-[light|normal|medium|semibold|bold|xbold]",
         "applies_to": "font weight utility",
         "figma_signals": ["fontWeight", "font style contains Medium, Semibold, Bold"],
         "webflow_properties": {"font-weight": "mapped weight"},
@@ -163,6 +164,63 @@
         "webflow_properties": {"variation": "combo class only"},
         "class_strategy": "combo_class"
       }
+    ],
+    "text_style": [
+      {"class": "text-style-allcaps",       "figma_signals": ["textCase: UPPER"],                                    "webflow_properties": {"text-transform": "uppercase"},                           "class_strategy": "utility_selection"},
+      {"class": "text-style-italic",        "figma_signals": ["fontStyle: Italic"],                                  "webflow_properties": {"font-style": "italic"},                                   "class_strategy": "utility_selection"},
+      {"class": "text-style-link",          "figma_signals": ["text node as hyperlink"],                             "webflow_properties": {"text-decoration": "underline"},                           "class_strategy": "utility_selection"},
+      {"class": "text-style-muted",         "figma_signals": ["opacity < 60% on text", "secondary text"],           "webflow_properties": {"opacity": "muted token"},                                 "class_strategy": "utility_selection"},
+      {"class": "text-style-nowrap",        "figma_signals": ["single-line label, button text"],                     "webflow_properties": {"white-space": "nowrap"},                                  "class_strategy": "utility_selection"},
+      {"class": "text-style-quote",         "figma_signals": ["pull quote", "testimonial text with decoration"],     "webflow_properties": {"font-style": "italic", "border-left": "quote bar"},       "class_strategy": "utility_selection"},
+      {"class": "text-style-strikethrough", "figma_signals": ["textDecoration: STRIKETHROUGH"],                      "webflow_properties": {"text-decoration": "line-through"},                        "class_strategy": "utility_selection"},
+      {"class": "text-style-2lines",        "figma_signals": ["truncated 2-line text block"],                        "webflow_properties": {"-webkit-line-clamp": "2"},                                "class_strategy": "utility_selection"},
+      {"class": "text-style-3lines",        "figma_signals": ["truncated 3-line text block"],                        "webflow_properties": {"-webkit-line-clamp": "3"},                                "class_strategy": "utility_selection"}
+    ],
+    "visibility": [
+      {"class": "hide",                   "figma_signals": ["visible=false all screens"],                            "webflow_properties": {"display": "none"},                "class_strategy": "utility_selection"},
+      {"class": "hide-tablet",            "figma_signals": ["element absent in tablet frame variant"],               "webflow_properties": {"display": "none at tablet"},      "class_strategy": "utility_selection"},
+      {"class": "hide-mobile-landscape",  "figma_signals": ["element absent in mobile landscape variant"],           "webflow_properties": {"display": "none at mobile-landscape"}, "class_strategy": "utility_selection"},
+      {"class": "hide-mobile-portrait",   "figma_signals": ["element absent in mobile portrait variant"],            "webflow_properties": {"display": "none at mobile-portrait"},  "class_strategy": "utility_selection"}
+    ],
+    "display": [
+      {"class": "display-inlineflex", "figma_signals": ["inline badge", "tag chip", "inline icon+text"], "webflow_properties": {"display": "inline-flex"}, "class_strategy": "utility_selection"}
+    ],
+    "button": [
+      {"class": "button",              "figma_signals": ["component named Button/Primary or CTA"],   "webflow_properties": {"base button styles": "padding, font, border-radius"}, "class_strategy": "required_global"},
+      {"class": "button is-secondary", "figma_signals": ["Button/Secondary variant"],                 "webflow_properties": {"variant overrides": "border, bg"},                   "class_strategy": "combo_class"},
+      {"class": "button is-text",      "figma_signals": ["Button/Text or link-style CTA"],            "webflow_properties": {"variant overrides": "no bg, no border"},              "class_strategy": "combo_class"}
+    ],
+    "max_width": [
+      {"class_pattern": "max-width-[xxlarge|xlarge|large|medium|small|xsmall|xxsmall]", "figma_signals": ["text block with constrained width inside container", "narrow content column"], "webflow_properties": {"max-width": "rem token"}, "class_strategy": "utility_selection"},
+      {"class_pattern": "max-width-full",                   "figma_signals": ["element must fill 100% on breakpoint"],         "webflow_properties": {"max-width": "100%"},                   "class_strategy": "utility_selection"},
+      {"class_pattern": "max-width-full-tablet",            "figma_signals": ["width constrained desktop, full at tablet"],    "webflow_properties": {"max-width": "100% at tablet"},         "class_strategy": "utility_selection"},
+      {"class_pattern": "max-width-full-mobile-landscape",  "figma_signals": ["full width mobile landscape only"],             "webflow_properties": {"max-width": "100% at mobile-landscape"},"class_strategy": "utility_selection"},
+      {"class_pattern": "max-width-full-mobile-portrait",   "figma_signals": ["full width mobile portrait only"],              "webflow_properties": {"max-width": "100% at mobile-portrait"}, "class_strategy": "utility_selection"}
+    ],
+    "icon": [
+      {"class_pattern": "icon-height-[small|medium|large]", "figma_signals": ["SVG/icon with height-only constraint, variable width"], "webflow_properties": {"height": "size token"},                            "class_strategy": "utility_selection"},
+      {"class_pattern": "icon-1x1-[small|medium|large]",    "figma_signals": ["square icon frame < 64px", "icon with equal width and height"], "webflow_properties": {"width": "size token", "height": "size token"}, "class_strategy": "utility_selection"}
+    ],
+    "advanced_layout": [
+      {"class": "z-index-1",            "figma_signals": ["overlapping stacked elements, lower layer"],          "webflow_properties": {"z-index": "1"},              "class_strategy": "utility_selection"},
+      {"class": "z-index-2",            "figma_signals": ["overlapping stacked elements, upper layer"],          "webflow_properties": {"z-index": "2"},              "class_strategy": "utility_selection"},
+      {"class": "align-center",         "figma_signals": ["centered child within parent frame"],                 "webflow_properties": {"margin": "auto"},             "class_strategy": "utility_selection"},
+      {"class": "layer",                "figma_signals": ["position absolute, 100% w and h, covers parent"],    "webflow_properties": {"position": "absolute", "inset": "0"}, "class_strategy": "utility_selection"},
+      {"class": "pointer-events-none",  "figma_signals": ["decorative overlay, no click interaction"],           "webflow_properties": {"pointer-events": "none"},     "class_strategy": "utility_selection"},
+      {"class": "pointer-events-auto",  "figma_signals": ["restore clicks on child inside pointer-none parent"],"webflow_properties": {"pointer-events": "auto"},     "class_strategy": "utility_selection"},
+      {"class": "overflow-hidden",      "figma_signals": ["clipsContent: true on frame", "image mask container"],"webflow_properties": {"overflow": "hidden"},         "class_strategy": "utility_selection"},
+      {"class": "overflow-scroll",      "figma_signals": ["scrollable content area"],                            "webflow_properties": {"overflow": "scroll"},         "class_strategy": "utility_selection"},
+      {"class": "overflow-auto",        "figma_signals": ["auto-scroll content area"],                           "webflow_properties": {"overflow": "auto"},           "class_strategy": "utility_selection"},
+      {"class": "aspect-ratio-square",      "figma_signals": ["square image placeholder, 1:1 frame"],      "webflow_properties": {"aspect-ratio": "1/1"},  "class_strategy": "utility_selection"},
+      {"class": "aspect-ratio-portrait",    "figma_signals": ["portrait image placeholder, 3:4 frame"],    "webflow_properties": {"aspect-ratio": "3/4"},  "class_strategy": "utility_selection"},
+      {"class": "aspect-ratio-landscape",   "figma_signals": ["landscape image placeholder, 4:3 frame"],   "webflow_properties": {"aspect-ratio": "4/3"},  "class_strategy": "utility_selection"},
+      {"class": "aspect-ratio-widescreen",  "figma_signals": ["16:9 video or banner frame"],               "webflow_properties": {"aspect-ratio": "16/9"}, "class_strategy": "utility_selection"}
+    ],
+    "spacer": [
+      {"class_pattern": "spacer-[tiny|small|medium|large|huge]", "figma_signals": ["empty spacer frame between siblings", "explicit vertical gap without layout grid"], "webflow_properties": {"height": "size token"}, "class_strategy": "utility_selection"}
+    ],
+    "spacing_reset": [
+      {"class": "spacing-clean", "figma_signals": ["override: remove all margin/padding from element"], "webflow_properties": {"margin": "0", "padding": "0"}, "class_strategy": "utility_selection"}
     ]
   },
   "figma_property_map": [
@@ -215,7 +273,36 @@
       "figma_property": "component variant",
       "signals": ["active", "secondary", "large", "small", "disabled"],
       "client_first_decision": "apply base component class plus is-[state] combo class"
+    },
+    {
+      "figma_property": "visible=false (some breakpoints)",
+      "signals": ["element only shows on mobile frame"],
+      "client_first_decision": "use hide-tablet or hide-mobile-* utility"
+    },
+    {
+      "figma_property": "clipsContent: true on frame",
+      "signals": ["image crops to frame bounds"],
+      "client_first_decision": "use overflow-hidden utility"
+    },
+    {
+      "figma_property": "SVG frame < 64px, equal w+h",
+      "signals": ["icon node"],
+      "client_first_decision": "use icon-1x1-[size] utility for sizing"
+    },
+    {
+      "figma_property": "component named Button/*",
+      "signals": ["CTA, action button"],
+      "client_first_decision": "use 'button' base class; add 'is-secondary' or 'is-text' combo for variants"
+    },
+    {
+      "figma_property": "text block with explicit maxWidth constraint",
+      "signals": ["readable width constraint inside container"],
+      "client_first_decision": "use max-width-[size] utility"
+    },
+    {
+      "figma_property": "frame stacking with absolute positions",
+      "signals": ["decorative layer behind content"],
+      "client_first_decision": "use 'layer' utility on absolute frame, z-index-1/2 for stacking order"
     }
   ]
 }
-

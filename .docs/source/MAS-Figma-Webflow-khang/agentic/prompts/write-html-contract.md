@@ -56,6 +56,18 @@ These six structural classes are **mandatory** on every page. They are predefine
 </div>
 ```
 
+**Section styling note:** Do not put visual styles (background color, text color) directly on `section_[name]`. For section-level visual variants, use a combo add-on class on the same section element:
+
+```html
+<!-- CORRECT: structural class + style variant combo -->
+<section class="section_pricing section-style-dark">
+
+<!-- WRONG: visual styles on structural class -->
+<section class="section_pricing">  <!-- with background-color set on section_pricing itself -->
+```
+
+`section-style-dark`, `section-style-brand` — these global style combos let you toggle section appearance without overriding the structural class.
+
 ---
 
 ## Layer 2: Existing Utility Classes — Check Before Creating
@@ -90,6 +102,11 @@ These cover **single-purpose, globally reusable CSS properties**. If a Figma pro
 | Left align | `text-align-left` |
 | Center align | `text-align-center` |
 | Right align | `text-align-right` |
+| Link-styled text | `text-style-link` |
+| Pull quote / blockquote | `text-style-quote` |
+| 2-line truncation | `text-style-2lines` |
+| 3-line truncation | `text-style-3lines` |
+| Huge body text (largest body) | `text-size-huge` |
 
 ### Color utilities (from per-project library)
 
@@ -121,12 +138,73 @@ Colors in the per-project library (`client-first-library.json`) already have thr
 | Secondary button variant | `button is-secondary` |
 | Text link button variant | `button is-text` |
 
+### Max-width utilities (constrain readable line length)
+
+| Need | Use this class |
+|---|---|
+| Constrain content width inside container | `max-width-[xxlarge\|xlarge\|large\|medium\|small\|xsmall\|xxsmall]` |
+| Full width at tablet | `max-width-full-tablet` |
+| Full width at mobile landscape | `max-width-full-mobile-landscape` |
+| Full width at mobile portrait | `max-width-full-mobile-portrait` |
+
+### Icon sizing
+
+| Need | Use this class |
+|---|---|
+| Icon with height only (variable width) | `icon-height-[small\|medium\|large]` |
+| Square icon (equal w+h) | `icon-1x1-[small\|medium\|large]` |
+
+### Advanced layout / decoration utilities
+
+| Need | Use this class |
+|---|---|
+| Hide overflow (image crop, mask) | `overflow-hidden` |
+| Scrollable container | `overflow-scroll` / `overflow-auto` |
+| Square 1:1 aspect ratio | `aspect-ratio-square` |
+| Portrait 3:4 aspect ratio | `aspect-ratio-portrait` |
+| Landscape 4:3 aspect ratio | `aspect-ratio-landscape` |
+| Widescreen 16:9 aspect ratio | `aspect-ratio-widescreen` |
+| Full-cover absolute layer | `layer` |
+| Inline flex (badge/tag chip) | `display-inlineflex` |
+| z-index 1 | `z-index-1` |
+| z-index 2 | `z-index-2` |
+| Disable pointer events | `pointer-events-none` |
+| Restore pointer events | `pointer-events-auto` |
+| Reset all margin and padding | `spacing-clean` |
+
+### Spacer (dedicated vertical gap element)
+
+| Need | Use this class |
+|---|---|
+| Vertical space between siblings | `spacer-[tiny\|small\|medium\|large\|huge]` |
+
+Use a plain `<div class="spacer-medium">` as a dedicated spacer div. Do NOT apply margin directly on content elements for sibling spacing — use a spacer div or spacing wrapper instead.
+
 ### Spacing utilities (for small adjustments only)
 
 Use margin/padding direction utilities as **modifier wrappers** for standardized spacer amounts.
 Form: `margin-[direction]` + `margin-[size]` (applied together on a wrapper div).
 
 ⚠️ Do NOT use these for complex component-level spacing — create a custom class instead (see below).
+
+**Spacing wrapper pattern (preferred for component spacing):**
+
+Wrap the child element in a `<div>` and apply spacing utilities to the wrapper — not to the content element itself.
+
+Use this pattern when:
+- Element is inside a Webflow Symbol/component (instance-specific spacing)
+- Element is a CSS Grid child where gap utility does not apply
+- You need different spacing on one instance without affecting all others
+
+```html
+<!-- CORRECT: wrapper owns spacing -->
+<div class="margin-bottom margin-medium">
+  <p class="text-size-regular">Paragraph text</p>
+</div>
+
+<!-- WRONG: margin applied to content element directly -->
+<p class="text-size-regular margin-bottom margin-medium">Paragraph text</p>
+```
 
 ---
 
@@ -152,6 +230,11 @@ Examples:
 | Pricing card CTA area | `pricing-card_cta-wrapper` |
 | Team member photo | `team_headshot` |
 | Footer copyright text | `footer_copyright` |
+
+**Prefix strategy — global vs page-specific:**
+- Element shared across multiple pages → generic prefix only: `card_wrapper`, `faq_item`, `nav_link`
+- Element only on one specific page → add page slug prefix: `home_hero-text`, `about_team-grid`
+- Never apply a page-prefixed class (`home_*`, `about_*`) to elements on other pages.
 
 ### The 5 mandatory cases for NEW custom class
 
@@ -249,7 +332,9 @@ For EACH element in the Figma design:
 ## Layer 5: Hard Rules (Never Break)
 
 ### Maximum stacking
-Never stack more than **3–4 classes on one element**. If you need 5+, merge into a custom class.
+Never stack more than **4 classes on one element** — 4 is the absolute CF maximum.
+1–2 classes: ideal. 3 classes: acceptable but justify it. 4: only when no merge option exists.
+5+: always merge into a single custom class, no exceptions.
 
 ```html
 <!-- BAD: 6 classes = maintenance nightmare -->
@@ -281,6 +366,12 @@ Never have two classes doing the same CSS property on the same element.
 <p class="text-color-primary hero_description">   ← hero_description has no color
 ```
 
+### REM exceptions — do not blindly convert all px values
+
+- **Borders:** Keep as literal `1px` — do NOT convert to rem. Retina displays handle px borders correctly; rem borders can blur.
+- **Typography minimum:** 14px = `0.875rem` is acceptable for small labels/captions. Never go below 12px (0.75rem).
+- **Tiny gaps:** 2px = `0.125rem` is OK for hairline visual gaps. Avoid irrational decimals like `8.4375rem`.
+
 ### Color ONLY from library or token
 Never hardcode a hex value in a custom class when that color exists as a Figma token in the per-project library. Reference the library class instead.
 
@@ -304,6 +395,12 @@ Never hardcode a hex value in a custom class when that color exists as a Figma t
 | Inline text variation | `<span>` |
 | Generic block | `<div>` |
 | Generic inline | `<span>` |
+| Self-contained content (blog post, product card) | `<article>` |
+| Supplementary / sidebar content | `<aside>` |
+| Image + caption pair | `<figure>` (with `<figcaption>`) |
+| Sub-header within a section or article | `<header>` |
+| Contact / authorship info | `<address>` |
+| Navigation group (navbar, breadcrumbs, footer links) | `<nav>` |
 
 ---
 

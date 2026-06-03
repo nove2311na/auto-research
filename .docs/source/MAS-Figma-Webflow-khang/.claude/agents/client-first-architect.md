@@ -35,6 +35,7 @@ Use during SOP Phase 1 blueprint creation and Phase 3 QA loop.
 - Client-First knowledge,
 - `knowledge-base/client-first-class-map.json`,
 - per-project library: `knowledge-base/libraries/{site_id}/client-first-library.json`,
+- design analysis (intermediate): `workspace/blueprints/[page-slug]_design-analysis.json` (produced by `read-figma-data.md` prompt before HTML contract writing),
 - page context and target page ID.
 
 ## HTML Contract Rule
@@ -45,6 +46,7 @@ create a new custom class. Every `new_classes` entry must cite the Case number f
 
 ## Output Contract
 
+- design analysis JSON `workspace/blueprints/[page-slug]_design-analysis.json` (intermediate pre-analysis before blueprint),
 - blueprint JSON in `workspace/blueprints/`, including per-section `html_contract` + `cf_classes`
   and a page-level `new_classes` list (the architect is the naming authority that pre-decides every
   class name, which prevents the parallel-build naming race),

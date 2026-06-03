@@ -9,4 +9,5 @@ This folder records MAS agentic-folder improvements by version. Each entry lists
 - `v0.2.0-claude-python-cleanup.md` records the Claude Code-only and Python-first cleanup.
 - `v0.3.0-agentic-quality-upgrades.md` records reflection, ReAct, schema, skill, phase, QA, and relative-path upgrades.
 - `v0.4.0-multi-project-library-parallel-build.md` records multi-project CF library system and parallel-section build workflow.
+- `v0.5.0-figma-html-optimization.md` records Figma→HTML contract deep optimization.
 - `REPO_CREATION_RUNBOOK.md` explains how to create another standalone Claude Code agentic repo from this pattern.

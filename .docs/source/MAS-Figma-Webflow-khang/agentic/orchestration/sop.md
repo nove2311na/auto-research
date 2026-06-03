@@ -55,11 +55,12 @@ Goal: produce Client-First blueprints and isolate data.
    - raw data,
    - content data,
    - `workspace/design-system.json`
-3. Architect writes:
+3. Produce design analysis: run `agentic/prompts/read-figma-data.md` prompt to output `workspace/blueprints/[page-slug]_design-analysis.json` from Figma raw data. Validate all color tokens and layout patterns before proceeding.
+4. Architect writes:
    - `workspace/blueprints/[section_id]_blueprint.json`
    - updates to `workspace/page_structure.json`
-4. PM presents blueprint to the user.
-5. PM stops until the user says `Approved` or `Agree`.
+5. PM presents blueprint to the user.
+6. PM stops until the user says `Approved` or `Agree`.
 
 Hard rules:
 
